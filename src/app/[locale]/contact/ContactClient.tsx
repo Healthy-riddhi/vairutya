@@ -46,14 +46,14 @@ export function ContactClient({ details }: { details: BusinessDetails }) {
             <Mail size={20} strokeWidth={1.75} className="mt-0.5 shrink-0 text-teal" />
             <div>
               <p className="mb-0.5 font-display text-sm font-bold text-ink">{t("email")}</p>
-              <a href={`mailto:${details.email}`} className="text-sm text-ink-muted hover:text-teal">{details.email}</a>
+              <a href={`mailto:${details.email}`} className="inline-block py-2 text-sm text-ink-muted hover:text-teal">{details.email}</a>
             </div>
           </div>
           <div className="flex items-start gap-3.5">
             <Phone size={20} strokeWidth={1.75} className="mt-0.5 shrink-0 text-teal" />
             <div>
               <p className="mb-0.5 font-display text-sm font-bold text-ink">{t("phone")}</p>
-              <a href={`tel:${details.phone.replace(/[^+\d]/g, "")}`} className="text-sm text-ink-muted hover:text-teal">{details.phone}</a>
+              <a href={`tel:${details.phone.replace(/[^+\d]/g, "")}`} className="inline-block py-2 text-sm text-ink-muted hover:text-teal">{details.phone}</a>
             </div>
           </div>
           <div className="flex items-start gap-3.5">

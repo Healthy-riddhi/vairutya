@@ -19,7 +19,7 @@ export async function Footer() {
                 <a
                   key={i}
                   href="#"
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-cream text-ink hover:text-teal hover:border-teal transition-colors"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-cream text-ink hover:text-teal hover:border-teal transition-colors"
                   aria-label={t("social")}
                 >
                   <Icon size={14} strokeWidth={1.5} />
@@ -30,10 +30,10 @@ export async function Footer() {
 
           <div>
             <p className="font-semibold text-sm text-ink">{t("products")}</p>
-            <ul className="mt-4 space-y-2.5">
+            <ul className="mt-3">
               {footerProductLinks.map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href} className="text-sm text-ink-muted hover:text-teal transition-colors">
+                  <Link href={item.href} className="inline-block py-2 text-sm text-ink-muted hover:text-teal transition-colors">
                     {t(`links.${item.key}`)}
                   </Link>
                 </li>
@@ -43,10 +43,10 @@ export async function Footer() {
 
           <div>
             <p className="font-semibold text-sm text-ink">{t("company")}</p>
-            <ul className="mt-4 space-y-2.5">
+            <ul className="mt-3">
               {footerCompanyLinks.map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href} className="text-sm text-ink-muted hover:text-teal transition-colors">
+                  <Link href={item.href} className="inline-block py-2 text-sm text-ink-muted hover:text-teal transition-colors">
                     {t(`links.${item.key}`)}
                   </Link>
                 </li>
@@ -65,12 +65,12 @@ export async function Footer() {
           <p>
             © {new Date().getFullYear()} VAIRUTYA. {t("rights")}
           </p>
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            <Link href="/privacy" className="hover:text-teal transition-colors">{t("privacy")}</Link>
-            <Link href="/terms" className="hover:text-teal transition-colors">{t("terms")}</Link>
-            <Link href="/shipping" className="hover:text-teal transition-colors">{t("shipping")}</Link>
-            <Link href="/refund-policy" className="hover:text-teal transition-colors">{t("refunds")}</Link>
-            <Link href="/cookies" className="hover:text-teal transition-colors">{t("cookies")}</Link>
+          <div className="flex flex-wrap gap-x-6">
+            <Link href="/privacy" className="inline-block py-2 hover:text-teal transition-colors">{t("privacy")}</Link>
+            <Link href="/terms" className="inline-block py-2 hover:text-teal transition-colors">{t("terms")}</Link>
+            <Link href="/shipping" className="inline-block py-2 hover:text-teal transition-colors">{t("shipping")}</Link>
+            <Link href="/refund-policy" className="inline-block py-2 hover:text-teal transition-colors">{t("refunds")}</Link>
+            <Link href="/cookies" className="inline-block py-2 hover:text-teal transition-colors">{t("cookies")}</Link>
           </div>
         </div>
       </div>

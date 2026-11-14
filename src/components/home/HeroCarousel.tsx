@@ -167,7 +167,7 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
                   onClick={() => goTo(i)}
                   aria-label={t("goToSlide", { n: i + 1 })}
                   aria-current={isActive}
-                  className={`pointer-events-auto shrink-0 rounded-full transition-all duration-300 ${
+                  className={`pointer-events-auto relative shrink-0 rounded-full transition-all duration-300 before:absolute before:-inset-x-1 before:-inset-y-3 before:content-[''] ${
                     isActive
                       ? "h-2.5 w-7 bg-white"
                       : isEdgePeek

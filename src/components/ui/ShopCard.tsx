@@ -34,7 +34,7 @@ export function ShopCard({ product }: { product: Product }) {
         className="group relative block aspect-square overflow-hidden rounded-xl bg-white"
       >
         {product.badge && (
-          <span className="absolute left-3 top-3 z-10 rounded-full bg-teal px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white">
+          <span className="absolute left-3 top-3 z-10 rounded-full bg-teal px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-white">
             {t(product.badge === "Best Seller" ? "bestSeller" : "newArrival")}
           </span>
         )}
@@ -48,7 +48,7 @@ export function ShopCard({ product }: { product: Product }) {
       </Link>
 
       <div className="flex flex-1 flex-col gap-2 pt-4.5 pb-1">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+        <span className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
           {product.brand}
         </span>
         <Link href={`/shop/${product.slug}`}>
@@ -59,14 +59,14 @@ export function ShopCard({ product }: { product: Product }) {
         <p className="flex-1 text-[13px] leading-relaxed text-ink-muted">
           {product.description}
         </p>
-        <div className="mt-2 flex items-center justify-between">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
           <span className="font-display text-lg font-bold text-teal">
             {formatMoney(product.price, product.currency)}
           </span>
           <button
             type="button"
             onClick={handleAdd}
-            className={`rounded-full border-[1.5px] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors ${
+            className={`min-h-10 rounded-full border-[1.5px] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition-colors ${
               inCart
                 ? "border-line bg-stone text-teal"
                 : "border-teal bg-teal text-white hover:opacity-90"

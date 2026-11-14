@@ -324,7 +324,7 @@ function WritePage({ recipe, index }: { recipe: Recipe; index: number }) {
           </span>
           <Link
             href={`/recipes/${recipe.slug}`}
-            className="rv pg-cta flex w-fit items-center gap-2 border-b border-teal pb-1 text-teal"
+            className="rv pg-cta relative flex w-fit items-center gap-2 border-b border-teal pb-1 text-teal before:absolute before:-inset-y-3 before:inset-x-0 before:content-['']"
             style={rv(5)}
           >
             <span className="text-xs font-semibold uppercase tracking-[0.1em]">

@@ -84,7 +84,7 @@ export function LoginForm({ next, justConfirmed }: { next: string; justConfirmed
             type="button"
             onClick={() => resend(sentTo)}
             disabled={resent}
-            className="text-[13px] font-semibold text-teal disabled:text-ink-muted"
+            className="py-2 text-[13px] font-semibold text-teal disabled:text-ink-muted"
           >
             {resent ? t("sentAgainInbox") : t("sendEmailAgain")}
           </button>
@@ -184,7 +184,7 @@ export function LoginForm({ next, justConfirmed }: { next: string; justConfirmed
                 {t("password")}
               </label>
               {mode === "login" && (
-                <Link href="/forgot-password" className="text-xs font-semibold text-teal">
+                <Link href="/forgot-password" className="inline-block -my-2 py-2 text-xs font-semibold text-teal">
                   {t("forgot")}
                 </Link>
               )}
@@ -206,7 +206,7 @@ export function LoginForm({ next, justConfirmed }: { next: string; justConfirmed
                 type="button"
                 onClick={() => setShowPass((s) => !s)}
                 aria-label={showPass ? t("hide") : t("show")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-muted"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2.5 text-ink-muted"
               >
                 {showPass ? (
                   <EyeOff size={18} strokeWidth={1.75} />
@@ -271,7 +271,7 @@ export function LoginForm({ next, justConfirmed }: { next: string; justConfirmed
               setError("");
               setUnconfirmed(false);
             }}
-            className="font-semibold text-teal"
+            className="inline-block -my-2 py-2 font-semibold text-teal"
           >
             {mode === "login" ? t("signUp") : t("signIn")}
           </button>

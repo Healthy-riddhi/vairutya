@@ -51,18 +51,18 @@ export function CalendarPicker({
   return (
     <div className="mb-10 max-w-[380px] rounded-2xl border border-line bg-white p-5">
       <div className="mb-4 flex items-center justify-between">
-        <button type="button" disabled={!canPrev} onClick={() => onMonthChange(new Date(year, mon - 1, 1))} className="p-1 text-ink-muted hover:text-teal disabled:opacity-30" aria-label={t("prevMonth")}>
+        <button type="button" disabled={!canPrev} onClick={() => onMonthChange(new Date(year, mon - 1, 1))} className="p-2.5 text-ink-muted hover:text-teal disabled:opacity-30" aria-label={t("prevMonth")}>
           <ChevronLeft size={20} strokeWidth={2} />
         </button>
         <span className="font-display text-[15px] font-bold capitalize text-ink">{monthLabel}</span>
-        <button type="button" disabled={!canNext} onClick={() => onMonthChange(new Date(year, mon + 1, 1))} className="p-1 text-ink-muted hover:text-teal disabled:opacity-30" aria-label={t("nextMonth")}>
+        <button type="button" disabled={!canNext} onClick={() => onMonthChange(new Date(year, mon + 1, 1))} className="p-2.5 text-ink-muted hover:text-teal disabled:opacity-30" aria-label={t("nextMonth")}>
           <ChevronRight size={20} strokeWidth={2} />
         </button>
       </div>
 
       <div className="mb-2 grid grid-cols-7">
         {dayNames.map((d) => (
-          <div key={d} className="py-1 text-center text-[11px] font-semibold capitalize tracking-[0.05em] text-ink-muted">{d}</div>
+          <div key={d} className="py-1 text-center text-xs font-semibold capitalize tracking-[0.05em] text-ink-muted">{d}</div>
         ))}
       </div>
 
