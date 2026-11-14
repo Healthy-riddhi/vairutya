@@ -1,0 +1,413 @@
+@import "tailwindcss";
+
+:root {
+  /* Brand palette — exact values from the Vairutya Figma source */
+  --color-cream: #f5f1ea;        /* page background / surface */
+  --color-stone: #ede9e2;        /* surface-container-low: alt sections, footer, cards */
+  --color-teal: #003b43;         /* primary */
+  --color-teal-dark: #001f24;    /* primary-dark */
+  --color-ink: #181d1c;          /* on-surface: body text */
+  --color-ink-muted: #40484a;    /* on-surface-variant: secondary text */
+  --color-line: #c0c8ca;         /* outline-variant: borders/hairlines */
+  --color-clay: #9b4a3a;         /* wordmark accent */
+}
+
+@theme inline {
+  --color-cream: var(--color-cream);
+  --color-stone: var(--color-stone);
+  --color-teal: var(--color-teal);
+  --color-teal-dark: var(--color-teal-dark);
+  --color-ink: var(--color-ink);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-line: var(--color-line);
+  --color-clay: var(--color-clay);
+
+  --font-display: var(--font-display);
+  --font-serif: var(--font-serif);
+  --font-body: var(--font-body);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-teal);
+  outline-offset: 2px;
+}
+
+@layer components {
+  /* Small uppercase section label, e.g. "POPULAR PRODUCTS" */
+  .eyebrow {
+    @apply font-display text-[22px] font-bold tracking-[0.12em] uppercase text-teal;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-teal text-white
+      font-semibold tracking-[0.12em] uppercase text-xs px-10 py-4 rounded-sm
+      shadow-[0_4px_16px_rgba(0,59,67,0.2)]
+      transition-opacity duration-200 hover:opacity-90
+      disabled:opacity-40 disabled:pointer-events-none;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 border border-teal text-teal
+      font-semibold tracking-[0.12em] uppercase text-xs px-10 py-4 rounded-sm
+      transition-colors duration-200 hover:bg-teal hover:text-white;
+  }
+
+  .link-underline {
+    @apply text-teal font-semibold text-xs tracking-[0.1em] uppercase
+      border-b border-teal pb-1
+      hover:opacity-65 transition-opacity;
+  }
+
+  .field {
+    @apply w-full border border-line bg-white px-5 h-[52px] text-base text-ink
+      placeholder:text-ink-muted focus:border-teal outline-none rounded-sm transition-colors;
+  }
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ==========================================================================
+   Recipe book — one book, pages turn through the recipes
+   ========================================================================== */
+.rbook-stage {
+  --Hv: max(420px, calc(100svh - 270px)); /* tallest book that fits with the controls */
+  --P: min(430px, calc((100vw - 64px) / 2), calc(var(--Hv) / 1.2)); /* page width */
+  --H: min(calc(var(--P) * 1.34), var(--Hv)); /* page height */
+  --paper: #fbf8f2;
+  --turn: 1.1s cubic-bezier(0.645, 0.045, 0.355, 1);
+
+  position: relative;
+  width: calc(var(--P) * 2);
+  height: var(--H);
+  margin-inline: auto;
+}
+
+.rbook {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(var(--P) * 2);
+  height: 100%;
+  perspective: 2600px;
+  /* Closed: slide left so the cover sits centred */
+  transform: translateX(calc(var(--P) * -0.5));
+  transition: transform var(--turn);
+}
+.rbook[data-open="true"] {
+  transform: none;
+}
+
+/* Hardcover boards behind the pages */
+.rbook-board {
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  z-index: 0;
+  background: linear-gradient(135deg, #0b4d57 0%, var(--color-teal) 50%, var(--color-teal-dark) 100%);
+  box-shadow:
+    0 28px 44px -18px rgba(0, 31, 36, 0.55),
+    0 4px 12px rgba(0, 31, 36, 0.2);
+}
+.rbook-board-r {
+  left: 50%;
+  right: -8px;
+  border-radius: 6px 16px 16px 6px;
+}
+.rbook-board-l {
+  left: -8px;
+  right: 50%;
+  border-radius: 16px 6px 6px 16px;
+  opacity: 0;
+  transition: opacity 0.6s ease 0.3s;
+}
+.rbook[data-open="true"] .rbook-board-l {
+  opacity: 1;
+}
+
+/* Gutter shadow once open */
+.rbook::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 44px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.2) 50%, transparent);
+  pointer-events: none;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.6s ease 0.4s;
+}
+.rbook[data-open="true"]::after {
+  opacity: 1;
+}
+
+/* ---- Leaves ---- */
+.leaf {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  will-change: transform;
+  transition: transform var(--turn);
+}
+.leaf[data-flipped="true"] {
+  transform: rotateY(-180deg);
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--paper);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  cursor: pointer;
+}
+.face-front {
+  border-radius: 0 8px 8px 0;
+  transform: translateZ(0);
+}
+.face-back {
+  border-radius: 8px 0 0 8px;
+  transform: rotateY(180deg);
+}
+.leaf[data-static="true"] .face-front {
+  cursor: default;
+  box-shadow:
+    1px 0 0 #e6dfd0,
+    2px 0 0 var(--paper),
+    3px 0 0 #e1d9c8,
+    4px 0 0 var(--paper),
+    5px 0 0 #dcd3c1;
+}
+
+/* Shading near the spine */
+.face::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.18), transparent 12%);
+}
+.face-back::before {
+  background: linear-gradient(270deg, rgba(0, 0, 0, 0.18), transparent 12%);
+}
+/* Light falling across the page while it turns */
+.leaf[data-flipping="true"] .face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: #000;
+  animation: pg-shade 1.1s ease-in-out;
+}
+@keyframes pg-shade {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.28;
+  }
+}
+
+/* ---- Cover ---- */
+.face-cover {
+  border-radius: 4px 14px 14px 4px;
+  background:
+    radial-gradient(120% 90% at 30% 10%, rgba(255, 255, 255, 0.08), transparent 60%),
+    linear-gradient(145deg, #0b4d57 0%, var(--color-teal) 50%, var(--color-teal-dark) 100%);
+}
+.face-cover::before {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.5) 0,
+    transparent 3%,
+    rgba(255, 255, 255, 0.12) 4.5%,
+    rgba(0, 0, 0, 0.28) 6%,
+    transparent 10%
+  );
+}
+.cover-inner {
+  position: absolute;
+  inset: 22px 22px 22px 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 36px 14px 30px;
+  border: 1px solid rgba(245, 241, 234, 0.3);
+  border-radius: 6px;
+}
+.cover-cue svg {
+  animation: cue 1.8s ease-in-out infinite;
+}
+@keyframes cue {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(6px);
+  }
+}
+
+/* ---- Left page: photo ---- */
+.pg-photo {
+  position: absolute;
+  inset: 0;
+}
+.pg-img {
+  transform: scale(1.18);
+}
+.leaf[data-flipped="true"] .pg-img {
+  transform: scale(1);
+  transition: transform 1.8s cubic-bezier(0.22, 1, 0.36, 1) 1.2s;
+}
+.pg-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 56px 24px 20px 24px;
+  color: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.5), transparent);
+}
+
+/* ---- Right page: write-up ---- */
+.pg-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pg-photo-m {
+  display: none;
+}
+.pg-body {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  padding: clamp(26px, calc(var(--H) * 0.075), 44px) 36px
+    clamp(26px, calc(var(--H) * 0.075), 44px) 48px;
+}
+.pg-title {
+  font-size: clamp(22px, calc(var(--H) * 0.056), 30px);
+}
+.pg-ribbon {
+  position: absolute;
+  top: 0;
+  right: 34px;
+  width: 20px;
+  height: 0;
+  background: var(--color-clay);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
+}
+.leaf[data-seen="true"] .pg-ribbon {
+  height: 64px;
+  transition: height 0.8s cubic-bezier(0.22, 1, 0.36, 1) 1.9s;
+}
+
+/* Text fades up once the page has landed */
+.rv {
+  opacity: 0;
+  transform: translateY(14px);
+}
+.leaf[data-seen="true"] .rv {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.7s ease,
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(1.1s + var(--i, 0) * 0.1s);
+}
+.pg-cta svg {
+  transition: transform 0.3s ease;
+}
+.pg-cta:hover svg {
+  transform: translateX(5px);
+}
+
+/* ---- Phones: one page on screen; the turned page swings off to the left ---- */
+@media (max-width: 719px) {
+  .rbook-stage {
+    --P: min(360px, calc(100vw - 56px));
+    --H: min(calc(var(--P) * 1.62), max(440px, calc(100svh - 270px)));
+    width: var(--P);
+    clip-path: inset(-60px -16px -60px 0);
+  }
+  .rbook,
+  .rbook[data-open="true"] {
+    transform: translateX(calc(var(--P) * -1));
+  }
+  .rbook-board-l,
+  .rbook::after {
+    display: none;
+  }
+  .pg-photo-m {
+    display: block;
+    position: relative;
+    height: 42%;
+    flex-shrink: 0;
+  }
+  .pg-body {
+    padding: 22px 24px 34px 28px;
+  }
+  .pg-title {
+    font-size: 24px;
+  }
+  .pg-body p {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .cover-inner {
+    inset: 18px 18px 18px 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rbook,
+  .leaf,
+  .leaf *,
+  .rbook *::before {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Phones: 16px fields stop iOS from zooming in when a field is tapped */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
