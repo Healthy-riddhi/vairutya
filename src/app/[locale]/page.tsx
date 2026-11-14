@@ -8,6 +8,7 @@ import { strapiGet, mediaUrl, type StrapiMedia } from "@/lib/strapi";
 
 type CmsSlide = {
   image?: StrapiMedia | null;
+  mobileImage?: StrapiMedia | null;
   alt?: string | null;
   headline?: string | null;
   subtext?: string | null;
@@ -21,7 +22,7 @@ async function getHeroSlides(): Promise<HeroSlide[]> {
   try {
     const res = await strapiGet<{ data?: { slides?: CmsSlide[] } | null }>(
       "home-hero",
-      "populate[slides][populate][image]=true"
+      "populate[slides][populate][image]=true&populate[slides][populate][mobileImage]=true"
     );
     const out: HeroSlide[] = [];
     for (const s of res.data?.slides ?? []) {
@@ -29,6 +30,7 @@ async function getHeroSlides(): Promise<HeroSlide[]> {
       if (!image || s.visible === false) continue;
       out.push({
         image,
+        mobileImage: mediaUrl(s.mobileImage) || undefined,
         alt: s.alt || s.image?.alternativeText || "Vairutya",
         headline: s.headline || undefined,
         subtext: s.subtext || undefined,

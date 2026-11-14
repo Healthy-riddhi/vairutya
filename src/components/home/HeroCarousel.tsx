@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useRef, TouchEvent, MouseEvent } from "react";
+import { useState, useRef, Fragment, TouchEvent, MouseEvent } from "react";
 import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
 export type HeroSlide = {
   image: string;
+  /** Optional portrait version shown on phones (recommended 1080x1350). */
+  mobileImage?: string;
   alt: string;
   headline?: string;
   subtext?: string;
@@ -33,6 +35,8 @@ const VISIBLE_DOTS = 4;
 export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] }) {
   const t = useTranslations("Hero");
   const slides = cmsSlides.length > 0 ? cmsSlides : DEFAULT_SLIDES;
+  // Portrait banner on phones only when every slide has a phone image (so the height never jumps between slides).
+  const portraitOnPhone = slides.every((s) => !!s.mobileImage);
   const [index, setIndex] = useState(0);
   const dragStartX = useRef<number | null>(null);
   const dragDeltaX = useRef(0);
@@ -114,7 +118,7 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
     <div>
       {/* Full-bleed banner */}
       <div
-        className="relative aspect-[16/8] max-h-[626px] w-full cursor-grab touch-pan-y overflow-hidden select-none active:cursor-grabbing"
+        className={`relative ${portraitOnPhone ? "aspect-[4/5] sm:aspect-[16/8]" : "aspect-[16/8]"} max-h-[626px] w-full cursor-grab touch-pan-y overflow-hidden select-none active:cursor-grabbing`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -124,17 +128,30 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
         onMouseLeave={handleMouseLeave}
       >
         {slides.map((slide, i) => (
-          <Image
-            key={`${i}-${slide.image}`}
-            src={slide.image}
-            alt={slide.alt}
-            fill
-            priority={i === 0}
-            sizes="100vw"
-            draggable={false}
-            className="object-cover transition-opacity duration-500"
-            style={{ opacity: index === i ? 1 : 0 }}
-          />
+          <Fragment key={`${i}-${slide.image}`}>
+            {slide.mobileImage && (
+              <Image
+                src={slide.mobileImage}
+                alt={slide.alt}
+                fill
+                priority={i === 0}
+                sizes="100vw"
+                draggable={false}
+                className="object-cover transition-opacity duration-500 sm:hidden"
+                style={{ opacity: index === i ? 1 : 0 }}
+              />
+            )}
+            <Image
+              src={slide.image}
+              alt={slide.alt}
+              fill
+              priority={i === 0 && !slide.mobileImage}
+              sizes="100vw"
+              draggable={false}
+              className={`object-cover transition-opacity duration-500 ${slide.mobileImage ? "hidden sm:block" : ""}`}
+              style={{ opacity: index === i ? 1 : 0 }}
+            />
+          </Fragment>
         ))}
 
         {/* The whole banner opens this slide's link (the buttons are part of the images) */}
