@@ -111,8 +111,11 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
   const active = slides[index] ?? slides[0];
   const headline = active.headline || t("headline");
   const subtext = active.subtext || t("subtext");
-  const buttonLabel = active.buttonLabel || t("button");
-  const buttonLink = active.buttonLink || DEFAULT_LINK;
+  // The button's label and link go together: a slide supplies both, or the defaults (quiz) apply to both.
+  // (The banner image itself still opens the slide's own link.)
+  const hasOwnButton = !!(active.buttonLabel && active.buttonLink);
+  const buttonLabel = hasOwnButton ? active.buttonLabel! : t("button");
+  const buttonLink = hasOwnButton ? active.buttonLink! : DEFAULT_LINK;
 
   return (
     <div>
