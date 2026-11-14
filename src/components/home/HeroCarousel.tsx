@@ -121,7 +121,7 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
     <div>
       {/* Full-bleed banner */}
       <div
-        className={`relative ${portraitOnPhone ? "aspect-[4/5] sm:aspect-[16/8]" : "aspect-[16/8]"} max-h-[626px] w-full cursor-grab touch-pan-y overflow-hidden select-none active:cursor-grabbing`}
+        className={`relative ${portraitOnPhone ? "aspect-[4/5] sm:aspect-auto" : "aspect-[16/8] sm:aspect-auto"} max-h-[626px] w-full sm:h-[calc(100svh-4rem)] sm:max-h-none sm:min-h-[480px] cursor-grab touch-pan-y overflow-hidden select-none active:cursor-grabbing`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
