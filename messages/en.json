@@ -420,7 +420,7 @@
     "age": "Age group",
     "identity": "How do you identify?",
     "country": "Country",
-    "motivation": "Main motivation today",
+    "motivation": "What is your main motivation today?",
     "select": "Select...",
     "selectCountry": "Select country...",
     "consent": "Send me wellness tips and offers from Vairutya (optional — you can unsubscribe any time).",
@@ -447,12 +447,25 @@
       "au": "Australia",
       "other": "Other"
     },
+    "hairAges": {
+      "a1824": "18–24",
+      "a2534": "25–34",
+      "a3544": "35–44",
+      "a4554": "45–54",
+      "a5564": "55–64",
+      "a65": "65+"
+    },
+    "hairIdentities": {
+      "woman": "Woman",
+      "man": "Man",
+      "other": "Other / Prefer to self-describe",
+      "none": "Prefer not to say"
+    },
     "motivations": {
-      "growth": "Hair growth",
-      "fall": "Reduce hair fall",
-      "scalp": "Scalp health",
-      "shine": "Shine & texture",
-      "wellness": "General wellness"
+      "better": "To feel better — energy, focus, mood, digestion",
+      "cravings": "To reduce cravings or emotional eating",
+      "symptom": "To manage a specific symptom or health concern",
+      "longterm": "To invest in long-term health and balance"
     },
     "disclaimer": "This quiz offers general wellness insight based on Ayurvedic tradition. It is not medical advice or a diagnosis. If you have a health concern, please speak to a qualified professional."
   },

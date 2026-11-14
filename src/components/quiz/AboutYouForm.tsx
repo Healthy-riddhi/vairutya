@@ -13,6 +13,13 @@ const SELECTS = [
   { key: "motivation", label: "motivation", opts: "motivations", placeholder: "select" },
 ] as const;
 
+// The Hair quiz has its own option lists (age bands, identity and motivation wording).
+const HAIR_OPTS: Record<string, string> = {
+  ageGroup: "hairAges",
+  identity: "hairIdentities",
+  motivation: "motivations",
+};
+
 export function AboutYouForm({ quiz, picks, onClose }: { quiz: Quiz; picks: number[]; onClose: () => void }) {
   const t = useTranslations("Quiz");
   const [firstName, setFirstName] = useState("");
@@ -53,7 +60,8 @@ export function AboutYouForm({ quiz, picks, onClose }: { quiz: Quiz; picks: numb
 
         {SELECTS.filter((s) => s.key !== "motivation" || quiz.slug === "hair-dosha").map(({ key, label, opts, placeholder }) => {
           const value = values[key] ?? "";
-          const options = Object.values(t.raw(opts) as Record<string, string>);
+          const isHair = quiz.slug === "hair-dosha";
+          const options = Object.values(t.raw(isHair ? HAIR_OPTS[key] ?? opts : opts) as Record<string, string>);
           return (
             <div key={key}>
               <label className="mb-2 block text-sm font-semibold text-ink">{t(label)} *</label>

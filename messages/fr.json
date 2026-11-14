@@ -420,7 +420,7 @@
     "age": "Tranche d’âge",
     "identity": "Comment vous identifiez-vous ?",
     "country": "Pays",
-    "motivation": "Motivation principale aujourd’hui",
+    "motivation": "Quelle est votre principale motivation aujourd’hui ?",
     "select": "Sélectionner...",
     "selectCountry": "Sélectionner un pays...",
     "consent": "Envoyez-moi des conseils bien-être et des offres de Vairutya (facultatif — vous pouvez vous désabonner à tout moment).",
@@ -447,12 +447,25 @@
       "au": "Australie",
       "other": "Autre"
     },
+    "hairAges": {
+      "a1824": "18–24 ans",
+      "a2534": "25–34 ans",
+      "a3544": "35–44 ans",
+      "a4554": "45–54 ans",
+      "a5564": "55–64 ans",
+      "a65": "65 ans et plus"
+    },
+    "hairIdentities": {
+      "woman": "Femme",
+      "man": "Homme",
+      "other": "Autre / Je préfère décrire moi-même",
+      "none": "Je préfère ne pas répondre"
+    },
     "motivations": {
-      "growth": "Croissance des cheveux",
-      "fall": "Réduire la chute des cheveux",
-      "scalp": "Santé du cuir chevelu",
-      "shine": "Brillance et texture",
-      "wellness": "Bien-être général"
+      "better": "Me sentir mieux – énergie, concentration, humeur, digestion",
+      "cravings": "Réduire les fringales ou l’alimentation émotionnelle",
+      "symptom": "Gérer un symptôme ou une problématique de santé spécifique",
+      "longterm": "Investir dans ma santé et mon équilibre à long terme"
     },
     "disclaimer": "Ce quiz propose un éclairage général sur le bien-être, fondé sur la tradition ayurvédique. Il ne constitue ni un avis médical ni un diagnostic. Si vous avez un problème de santé, parlez-en à un professionnel qualifié."
   },
