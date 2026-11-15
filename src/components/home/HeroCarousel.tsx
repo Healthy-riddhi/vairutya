@@ -119,7 +119,7 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
     <div>
       {/* Full-bleed banner */}
       <div
-        className="relative h-[calc(100lvh-4rem)] min-h-[480px] w-full cursor-grab touch-pan-y overflow-hidden select-none active:cursor-grabbing"
+        className="relative h-[calc(100svh-0.5rem)] min-h-[480px] sm:h-[calc(100svh-4rem)] w-full cursor-grab touch-pan-y overflow-hidden select-none active:cursor-grabbing"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -169,9 +169,15 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
           />
         )}
 
+        {/* Soft fog at the bottom of the banner (phones): fades into the page colour behind the browser toolbar */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[15] h-44 bg-gradient-to-t from-cream via-cream/70 to-transparent backdrop-blur-[6px] [-webkit-mask-image:linear-gradient(to_top,black_0%,black_35%,transparent_100%)] [mask-image:linear-gradient(to_top,black_0%,black_35%,transparent_100%)] sm:hidden"
+        />
+
         {/* Windowed dot navigation */}
         {total > 1 && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-28 z-20 sm:bottom-6 flex items-center justify-center gap-2">
+          <div className="pointer-events-none absolute inset-x-0 bottom-24 z-20 flex sm:bottom-6 items-center justify-center gap-2">
             {dotIndices.map((i) => {
               const isActive = i === index;
               const isEdgePeek =
