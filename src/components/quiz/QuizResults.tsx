@@ -8,7 +8,7 @@ import { pickResult, type Quiz, type QuizScore } from "@/lib/quiz/model";
 const DEFAULT_PRODUCTS = [
   { name: "Personalised consultation", description: "A 1-on-1 session that turns your result into a plan made for you.", buttonLabel: "Book now", link: "/consultation", highlighted: true },
   { name: "Shop the essentials", description: "Handcrafted tools and essentials rooted in Ayurveda.", buttonLabel: "Shop now", link: "/shop", highlighted: false },
-  { name: "Take another quiz", description: "Explore another part of your constitution.", buttonLabel: "Explore", link: "/quiz", highlighted: false },
+  { name: "Join a workshop", description: "Guided, hands-on sessions rooted in Ayurveda and modern wellness.", buttonLabel: "Explore", link: "/workshops", highlighted: false },
 ].map((p) => ({ ...p, image: null as string | null }));
 
 const FALLBACK_IMAGES = [
