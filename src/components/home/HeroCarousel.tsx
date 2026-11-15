@@ -119,7 +119,7 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
     <div>
       {/* Full-bleed banner */}
       <div
-        className="relative h-[calc(100svh-4rem)] min-h-[480px] w-full cursor-grab touch-pan-y overflow-hidden select-none active:cursor-grabbing"
+        className="relative h-[calc(100lvh-4rem)] min-h-[480px] w-full cursor-grab touch-pan-y overflow-hidden select-none active:cursor-grabbing"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -171,7 +171,7 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
 
         {/* Windowed dot navigation */}
         {total > 1 && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-6 z-20 flex items-center justify-center gap-2">
+          <div className="pointer-events-none absolute inset-x-0 bottom-28 z-20 sm:bottom-6 flex items-center justify-center gap-2">
             {dotIndices.map((i) => {
               const isActive = i === index;
               const isEdgePeek =
