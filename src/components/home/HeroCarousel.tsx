@@ -35,8 +35,6 @@ const VISIBLE_DOTS = 4;
 export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] }) {
   const t = useTranslations("Hero");
   const slides = cmsSlides.length > 0 ? cmsSlides : DEFAULT_SLIDES;
-  // Portrait banner on phones only when every slide has a phone image (so the height never jumps between slides).
-  const portraitOnPhone = slides.every((s) => !!s.mobileImage);
   const [index, setIndex] = useState(0);
   const dragStartX = useRef<number | null>(null);
   const dragDeltaX = useRef(0);
@@ -121,7 +119,7 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
     <div>
       {/* Full-bleed banner */}
       <div
-        className={`relative ${portraitOnPhone ? "aspect-[4/5] sm:aspect-auto" : "aspect-[16/8] sm:aspect-auto"} max-h-[626px] w-full sm:h-[calc(100svh-4rem)] sm:max-h-none sm:min-h-[480px] cursor-grab touch-pan-y overflow-hidden select-none active:cursor-grabbing`}
+        className="relative h-[calc(100svh-4rem)] min-h-[480px] w-full cursor-grab touch-pan-y overflow-hidden select-none active:cursor-grabbing"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
