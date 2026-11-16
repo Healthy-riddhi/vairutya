@@ -410,6 +410,7 @@
     "close": "Close quiz",
     "question": "Question {n} of {total}",
     "next": "Next",
+    "previous": "Previous",
     "submit": "Submit",
     "suggested": "Suggested Products",
     "retake": "Retake Quiz",

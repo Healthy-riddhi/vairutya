@@ -410,6 +410,7 @@
     "close": "Fermer le quiz",
     "question": "Question {n} sur {total}",
     "next": "Suivant",
+    "previous": "Précédent",
     "submit": "Valider",
     "suggested": "Produits suggérés",
     "retake": "Refaire le quiz",
