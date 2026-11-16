@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { STRAPI_URL } from "@/lib/strapi";
 import { clean, clientIp, isEmail, rateLimited, readJson } from "@/lib/api-utils";
+import { liftTransactionalBlock } from "@/lib/brevo";
 import { clearSession, getSessionUser, getToken, setSession } from "@/lib/session";
 
 /**
@@ -81,6 +82,7 @@ async function register(body: Body, ip: string) {
   if (problem) return fail(problem);
   if (rateLimited(`register:${ip}`, 5, TEN_MIN)) return slowDown();
 
+  await liftTransactionalBlock(email);
   const r = await strapi("/auth/local/register", {
     body: { username: email, email, password, fullName },
   });
@@ -137,6 +139,7 @@ async function forgotPassword(body: Body, ip: string) {
   if (rateLimited(`forgot:${ip}`, 3, TEN_MIN)) return slowDown();
 
   // Always answer the same way, so nobody can use this to find out who has an account.
+  await liftTransactionalBlock(email);
   const r = await strapi("/auth/forgot-password", { body: { email } });
   if (!r.ok) console.error("[auth] forgot-password:", r.status, r.message);
   return ok();
@@ -168,6 +171,7 @@ async function resendConfirmation(body: Body, ip: string) {
   if (!isEmail(email)) return fail("Please enter a valid email.");
   if (rateLimited(`resend:${ip}`, 3, TEN_MIN)) return slowDown();
 
+  await liftTransactionalBlock(email);
   await strapi("/auth/send-email-confirmation", { body: { email } });
   return ok();
 }

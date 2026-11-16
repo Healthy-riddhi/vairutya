@@ -51,6 +51,52 @@ async function brevoPost(path: string, body: unknown): Promise<Response> {
   });
 }
 
+async function brevoRequest(method: "PUT" | "DELETE", path: string, body?: unknown): Promise<Response> {
+  return fetch(`${API}${path}`, {
+    method,
+    headers: {
+      "api-key": requireEnv("BREVO_API_KEY"),
+      accept: "application/json",
+      ...(body !== undefined ? { "content-type": "application/json" } : {}),
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    cache: "no-store",
+  });
+}
+
+/**
+ * Brevo keeps a "blocked or unsubscribed" list for transactional email. Someone who clicked
+ * "unsubscribe" in any email sent through it lands there, and from then on Brevo silently drops
+ * everything sent to them, including password resets. Unsubscribing from the newsletter must not
+ * cost anyone their account emails, so this clears that block just before we send them one.
+ * Best effort: a 404 means there was nothing to clear, and any other problem must never stop the email.
+ */
+export async function liftTransactionalBlock(email: string): Promise<void> {
+  if (devFallback()) return;
+  try {
+    const res = await brevoRequest("DELETE", `/smtp/blockedContacts/${encodeURIComponent(email)}`);
+    if (!res.ok && res.status !== 404) console.warn("[brevo] could not clear transactional block:", res.status);
+  } catch (err) {
+    console.warn("[brevo] could not clear transactional block:", (err as Error).message);
+  }
+}
+
+/**
+ * Someone who unsubscribed and now signs up again on the website has asked for the newsletter
+ * on purpose, so lift the "unsubscribed" blocks Brevo may have on their address. Without this
+ * Brevo silently refuses to send them the confirmation email. Best effort, never stops the signup.
+ */
+async function liftUnsubscribeBlocks(email: string): Promise<void> {
+  if (devFallback()) return;
+  try {
+    const res = await brevoRequest("PUT", `/contacts/${encodeURIComponent(email)}`, { emailBlacklisted: false });
+    if (!res.ok && res.status !== 404) console.warn("[brevo] could not lift marketing blocklist:", res.status);
+  } catch (err) {
+    console.warn("[brevo] could not lift marketing blocklist:", (err as Error).message);
+  }
+  await liftTransactionalBlock(email);
+}
+
 /** Public address of the site, without a trailing slash. */
 export function siteUrl(): string {
   return (process.env.SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
@@ -69,6 +115,8 @@ export async function subscribeWithDoi(opts: {
     console.log("[brevo:dev] DOI subscribe →", opts);
     return;
   }
+
+  await liftUnsubscribeBlocks(opts.email);
 
   const payload = {
     email: opts.email,
@@ -111,6 +159,8 @@ export async function sendEmail(mail: Mail): Promise<void> {
     );
     return;
   }
+
+  await liftTransactionalBlock(mail.to.email);
 
   const res = await brevoPost("/smtp/email", {
     sender: {
