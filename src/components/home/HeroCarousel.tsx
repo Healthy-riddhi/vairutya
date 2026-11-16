@@ -2,7 +2,6 @@
 
 import { useState, useRef, Fragment, TouchEvent, MouseEvent } from "react";
 import Image from "next/image";
-import { ArrowRight } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
@@ -188,10 +187,11 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
                 if (moved.current) e.preventDefault();
                 moved.current = false;
               }}
-              className="pointer-events-auto flex w-full items-center justify-center gap-3 border border-white/90 bg-black/30 px-8 py-4 text-sm font-semibold uppercase tracking-[0.14em] text-white backdrop-blur-md transition-colors hover:bg-white hover:text-ink sm:w-auto sm:min-w-[280px]"
+              className="group pointer-events-auto block w-full max-w-[19rem] bg-[#f8f6ef] p-2.5 sm:w-auto sm:max-w-none sm:p-3"
             >
-              {active.buttonLabel}
-              <ArrowRight size={18} strokeWidth={1.75} />
+              <span className="block bg-[#2a2522] px-8 py-3.5 text-center text-base font-medium tracking-wide text-[#f8f6ef] transition-colors group-hover:bg-[#3d3631] sm:min-w-[260px] sm:px-12">
+                {active.buttonLabel}
+              </span>
             </Link>
           </div>
         )}
