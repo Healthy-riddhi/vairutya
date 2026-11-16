@@ -157,10 +157,12 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
         ))}
 
         {/* The whole banner opens this slide's link (the buttons are part of the images) */}
-        {active.buttonLink && (
+        {/* Whole-banner link: only for slides without a real button (their button is drawn into the image).
+            Slides with a button label open their link from that button alone. */}
+        {active.buttonLink && !active.buttonLabel && (
           <Link
             href={active.buttonLink}
-            aria-label={active.buttonLabel || active.alt}
+            aria-label={active.alt}
             draggable={false}
             onClick={(e) => {
               if (moved.current) e.preventDefault();
