@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { ChevronDown } from "lucide-react";
 import { scoreQuiz, type Quiz } from "@/lib/quiz/model";
@@ -27,6 +27,25 @@ export function AboutYouForm({ quiz, picks, onClose }: { quiz: Quiz; picks: numb
   const [values, setValues] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [consent, setConsent] = useState(false); // newsletter: optional, never pre-ticked
+
+  // Signed-in customers: fill in their name and email so they don't retype them.
+  // Only empty fields are filled, so nothing the person has already typed is overwritten.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        const user = d?.user;
+        if (cancelled || !user) return;
+        const first = String(user.fullName ?? "").trim().split(/\s+/)[0] ?? "";
+        if (first) setFirstName((v) => v || first);
+        if (user.email) setEmail((v) => v || String(user.email));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
