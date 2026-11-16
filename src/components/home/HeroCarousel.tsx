@@ -2,6 +2,7 @@
 
 import { useState, useRef, Fragment, TouchEvent, MouseEvent } from "react";
 import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
@@ -174,6 +175,24 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
           aria-hidden
           className="pointer-events-none absolute inset-x-0 bottom-0 z-[15] h-44 bg-gradient-to-t from-cream via-cream/70 to-transparent backdrop-blur-[6px] [-webkit-mask-image:linear-gradient(to_top,black_0%,black_35%,transparent_100%)] [mask-image:linear-gradient(to_top,black_0%,black_35%,transparent_100%)] sm:hidden"
         />
+
+        {/* Call-to-action in the lower part of the banner (Aesop style). Shown only for slides that have a button label in Strapi. */}
+        {active.buttonLabel && active.buttonLink && (
+          <div className="pointer-events-none absolute inset-x-5 bottom-36 z-20 flex justify-center sm:inset-x-0 sm:bottom-20">
+            <Link
+              href={active.buttonLink}
+              draggable={false}
+              onClick={(e) => {
+                if (moved.current) e.preventDefault();
+                moved.current = false;
+              }}
+              className="pointer-events-auto flex w-full items-center justify-center gap-3 border border-white/90 bg-black/30 px-8 py-4 text-sm font-semibold uppercase tracking-[0.14em] text-white backdrop-blur-md transition-colors hover:bg-white hover:text-ink sm:w-auto sm:min-w-[280px]"
+            >
+              {active.buttonLabel}
+              <ArrowRight size={18} strokeWidth={1.75} />
+            </Link>
+          </div>
+        )}
 
         {/* Windowed dot navigation */}
         {total > 1 && (
