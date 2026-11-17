@@ -1,7 +1,7 @@
 import { getLocale } from "next-intl/server";
 import { ConsultationClient } from "./ConsultationClient";
 import { getConsultationPage } from "@/lib/content";
-import { getAvailability } from "@/lib/consultation-api";
+import { getBookingInfo } from "@/lib/consultation-api";
 
 export const dynamic = "force-dynamic"; // open slots change as people book
 
@@ -14,6 +14,8 @@ export default async function ConsultationPage() {
     return fr ?? (await getConsultationPage("en"));
   }
 
-  const [content, days] = await Promise.all([pageCopy(), getAvailability()]);
-  return <ConsultationClient content={content} days={days} />;
+  const [content, info] = await Promise.all([pageCopy(), getBookingInfo()]);
+  // The fee for this visitor's site (rupees on the English site, euros on the French one). 0 = free request.
+  const feeMinor = locale === "fr" ? info.fees.EUR : info.fees.INR;
+  return <ConsultationClient content={content} days={info.days} feeMinor={feeMinor} />;
 }

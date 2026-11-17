@@ -8,6 +8,8 @@ import { CalendarPicker } from "@/components/consultation/CalendarPicker";
 import { StepLabel } from "@/components/consultation/StepLabel";
 import type { ConsultationContent } from "@/types/content";
 import { parisLabel, slotLabel } from "@/lib/consultation";
+import { formatMinor } from "@/lib/money";
+import { loadRazorpay, type PaymentResponse } from "@/lib/razorpay-client";
 
 const keyOf = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -15,10 +17,13 @@ const keyOf = (d: Date) =>
 export function ConsultationClient({
   content,
   days,
+  feeMinor,
 }: {
   content: ConsultationContent | null;
   /** Open slots from Strapi: { "2026-12-04": ["10:00", "11:00"] } */
   days: Record<string, string[]>;
+  /** Consultation fee in paise/cents for this visitor's site. 0 means no payment. */
+  feeMinor: number;
 }) {
   const t = useTranslations("Consultation");
   const locale = useLocale();
@@ -44,6 +49,7 @@ export function ConsultationClient({
   const paris =
     locale === "fr" && selectedKey && selectedSlot && slotValid ? parisLabel(selectedKey, selectedSlot) : null;
 
+  const fee = feeMinor > 0 ? formatMinor(feeMinor, locale === "fr" ? "EUR" : "INR") : null;
   const canBook = Boolean(selectedKey && slotValid && name.trim() && phone.trim() && email.trim());
 
   async function submitBooking() {
@@ -62,11 +68,52 @@ export function ConsultationClient({
           router.refresh(); // reload the open slots
           throw new Error(t("taken"));
         }
+        if (data?.code === "payments_fr_off") throw new Error(t("frSoon"));
+        if (data?.code === "payments_off") throw new Error(t("payOff"));
         throw new Error(data?.error ?? t("generic"));
       }
-      router.push(
-        `/consultation/confirmed?ref=${encodeURIComponent(data.reference)}&t=${encodeURIComponent(data.token)}`
-      );
+      const q = `ref=${encodeURIComponent(data.reference)}&t=${encodeURIComponent(data.token)}`;
+
+      // UPI: the payment page opens straight away, like a product order
+      if (data.mode === "upi") {
+        router.push(`/consultation/pay?${q}`);
+        return;
+      }
+      // Free request (no fee set): straight to the status page
+      if (data.mode !== "razorpay") {
+        router.push(`/consultation/confirmed?${q}`);
+        return;
+      }
+
+      // Razorpay: its payment window opens straight away
+      const Razorpay = await loadRazorpay(t("errLoad"));
+      const rzp = new Razorpay({
+        key: data.keyId,
+        amount: data.amountMinor,
+        currency: data.currency,
+        order_id: data.razorpayOrderId,
+        name: "Vairutya",
+        description: data.reference,
+        prefill: data.prefill,
+        theme: { color: "#003b43" },
+        modal: { ondismiss: () => setSending(false) },
+        handler: async (r: PaymentResponse) => {
+          try {
+            const v = await fetch("/api/consultation/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(r),
+            });
+            if (!v.ok) throw new Error("verify failed");
+            router.push(`/consultation/confirmed?${q}`);
+          } catch {
+            setError(t("errConfirm", { ref: data.reference }));
+            setSending(false);
+          }
+        },
+      });
+      rzp.on("payment.failed", (r) => setError(r.error?.description ?? t("errFailed")));
+      rzp.open();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("generic"));
       setSending(false);
@@ -240,6 +287,7 @@ export function ConsultationClient({
               </div>
             </div>
 
+            {fee && <p className="mb-4 text-center text-sm text-ink-muted">{t("feeNote", { amount: fee })}</p>}
             {error && <p role="alert" className="mb-4 text-center text-sm text-clay">{error}</p>}
             <div className="flex justify-center">
               <button
@@ -248,7 +296,7 @@ export function ConsultationClient({
                 onClick={submitBooking}
                 className="btn-primary px-16 disabled:bg-line disabled:text-ink-muted"
               >
-                {sending ? t("sending") : t("request")}
+                {sending ? (fee ? t("opening") : t("sending")) : fee ? t("continuePay", { amount: fee }) : t("request")}
               </button>
             </div>
           </>

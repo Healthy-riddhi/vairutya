@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import { Link, redirect } from "@/i18n/navigation";
 import { CheckCircle2, Clock, Info } from "lucide-react";
 import { getRequest } from "@/lib/consultation-api";
 import { longDate, parisLabel, slotLabel } from "@/lib/consultation";
@@ -48,6 +48,40 @@ export default async function ConsultationStatusPage({
       <Shell icon={icon(<Info size={40} strokeWidth={1.75} className="text-teal" />)} title={t("cancelledTitle")}>
         <p className="mb-8 max-w-[440px] text-base leading-relaxed text-ink-muted">{t("cancelledText")}</p>
         <Link href="/consultation" className="btn-primary !rounded-full">{t("rebook")}</Link>
+      </Shell>
+    );
+  }
+
+  if (r.status === "requested" && r.paymentStatus === "pending_payment" && r.paymentMethod === "upi_manual") {
+    // They haven't paid yet: back to the payment page
+    redirect({ href: `/consultation/pay?ref=${encodeURIComponent(r.reference)}&t=${encodeURIComponent(token)}`, locale });
+  }
+
+  if (r.status === "requested" && (r.paymentStatus === "pending_payment" || r.paymentStatus === "payment_failed")) {
+    return (
+      <Shell icon={icon(<Info size={40} strokeWidth={1.75} className="text-teal" />)} title={t("unpaidTitle")}>
+        <p className="mb-8 max-w-[440px] text-base leading-relaxed text-ink-muted">{t("unpaidText")}</p>
+        <Link href="/consultation" className="btn-primary !rounded-full">{t("rebook")}</Link>
+      </Shell>
+    );
+  }
+
+  if (r.status === "requested" && r.paymentStatus === "payment_submitted") {
+    return (
+      <Shell icon={icon(<Clock size={40} strokeWidth={1.75} className="text-teal" />)} title={t("verifyingTitle")}>
+        <p className="mb-3 max-w-[440px] text-base leading-relaxed text-ink-muted">{t("verifyingText")}</p>
+        <p className="mb-8 text-xs text-ink-muted">{t("reference", { ref: r.reference })}</p>
+        <Link href="/" className="btn-primary !rounded-full">{t("home")}</Link>
+      </Shell>
+    );
+  }
+
+  if (r.status === "requested" && r.paymentStatus === "paid") {
+    return (
+      <Shell icon={icon(<CheckCircle2 size={40} strokeWidth={1.75} className="text-teal" />)} title={t("paidTitle")}>
+        <p className="mb-3 max-w-[440px] text-base leading-relaxed text-ink-muted">{t("paidText", { date, time })}</p>
+        <p className="mb-8 text-xs text-ink-muted">{t("reference", { ref: r.reference })}</p>
+        <Link href="/" className="btn-primary !rounded-full">{t("home")}</Link>
       </Shell>
     );
   }

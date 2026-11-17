@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { verifyWebhookSignature } from "@/lib/razorpay";
 import { AmountMismatch, markFailed, markPaid } from "@/lib/orders";
 import { sendPaidEmails } from "@/lib/order-emails";
+import { ConsultationAmountMismatch, markConsultationFailed, markConsultationPaid } from "@/lib/consultation-api";
+import { sendConsultationPaidEmails } from "@/lib/consultation-emails";
 
 type RazorpayEvent = {
   event?: string;
@@ -44,11 +46,17 @@ export async function POST(req: Request) {
     if ((event.event === "payment.captured" || event.event === "order.paid") && orderId) {
       const r = await markPaid(orderId, payment?.id ?? "", payment?.amount, payment?.currency);
       if (r?.justPaid) await sendPaidEmails(r.order);
+      if (!r) {
+        // not a product order: it may be a consultation booking
+        const c = await markConsultationPaid(orderId, payment?.id ?? "", payment?.amount, payment?.currency);
+        if (c?.justPaid) await sendConsultationPaidEmails(c.request);
+      }
     } else if (event.event === "payment.failed" && orderId) {
       await markFailed(orderId);
+      await markConsultationFailed(orderId);
     }
   } catch (err) {
-    if (err instanceof AmountMismatch) {
+    if (err instanceof AmountMismatch || err instanceof ConsultationAmountMismatch) {
       // Recorded on the order in Strapi for you to look at. Retrying would never fix it.
       console.error("[webhook] AMOUNT MISMATCH for", orderId, "(see the order's notes in Strapi)");
       return NextResponse.json({ ok: true });

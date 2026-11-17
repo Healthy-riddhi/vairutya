@@ -363,7 +363,15 @@
     "tzParis": "{slot} (heure de l’Inde) correspond à {paris} à Paris.",
     "pickDate": "Choisissez d’abord une date pour voir les horaires disponibles.",
     "noSlots": "Aucun créneau n’est ouvert pour le moment. Revenez bientôt ou <link>contactez-nous</link>.",
-    "taken": "Désolé, ce créneau vient d’être pris. Veuillez en choisir un autre."
+    "taken": "Désolé, ce créneau vient d’être pris. Veuillez en choisir un autre.",
+    "feeNote": "Tarif de la consultation : {amount}. Vous paierez à l’écran suivant pour réserver votre créneau.",
+    "continuePay": "Continuer vers le paiement — {amount}",
+    "opening": "Ouverture du paiement…",
+    "errLoad": "Impossible de charger la fenêtre de paiement. Vérifiez votre connexion et réessayez.",
+    "errConfirm": "Votre paiement a bien été effectué, mais nous n’avons pas encore pu le confirmer à l’écran. Nous vous écrirons sous peu. Sans nouvelles de notre part, contactez-nous avec la référence {ref}.",
+    "errFailed": "Le paiement n’a pas abouti. Vous pouvez réessayer.",
+    "frSoon": "Les paiements en euros ne sont pas encore ouverts, nous ne pouvons donc pas enregistrer cette réservation. Revenez bientôt.",
+    "payOff": "Les paiements ne sont pas encore activés. Revenez bientôt."
   },
   "Home": {
     "guidanceTitle": "Accompagnement d’experts",
@@ -534,7 +542,13 @@
     "notFoundTitle": "Nous n’avons pas retrouvé cette demande",
     "notFoundText": "Le lien est peut-être incomplet. Utilisez le lien de votre e-mail ou contactez-nous.",
     "contact": "Nous contacter",
-    "home": "Retour à l’accueil"
+    "home": "Retour à l’accueil",
+    "paidTitle": "Paiement reçu",
+    "paidText": "Merci. Vous avez demandé le {date} à {time} (heure de l’Inde). Nous confirmerons votre créneau par e-mail sous peu. Actualisez cette page une fois notre confirmation reçue pour la voir ici.",
+    "verifyingTitle": "Nous vérifions votre paiement",
+    "verifyingText": "Nous avons bien reçu votre référence de paiement. Nous vous écrirons dès qu’elle sera confirmée, puis nous confirmerons votre créneau.",
+    "unpaidTitle": "Votre paiement n’a pas été finalisé",
+    "unpaidText": "Votre réservation n’est pas garantie tant que le paiement n’est pas effectué. Vous pouvez choisir un horaire et réessayer."
   },
   "Pay": {
     "title": "Finalisez votre paiement",
@@ -564,5 +578,18 @@
     "closedText": "Elle n’attend plus de paiement. Vous pouvez passer une nouvelle commande depuis la boutique.",
     "shop": "Retour à la boutique",
     "notSetUp": "Les informations de paiement UPI ne sont pas encore configurées. Veuillez nous contacter."
+  },
+  "ConsultationPay": {
+    "title": "Finalisez votre paiement",
+    "intro": "Payez le montant exact ci-dessous par UPI, puis saisissez votre référence UPI afin que nous confirmions votre consultation.",
+    "booking": "Réservation {ref}",
+    "slot": "{date} à {time} (heure de l’Inde)",
+    "note": "Indiquez {ref} dans la note du paiement pour que nous puissions le retrouver.",
+    "verifyingTitle": "Nous vérifions votre paiement",
+    "verifyingText": "Nous avons bien reçu votre référence {utr}. Nous vous écrirons dès que votre paiement sera confirmé, puis nous confirmerons votre créneau.",
+    "viewStatus": "Voir ma réservation",
+    "closedTitle": "Cette réservation est clôturée",
+    "closedText": "Elle n’attend plus de paiement. Vous pouvez choisir un nouvel horaire.",
+    "rebook": "Choisir un nouvel horaire"
   }
 }

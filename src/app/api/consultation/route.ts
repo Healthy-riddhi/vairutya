@@ -2,12 +2,18 @@ import { NextResponse } from "next/server";
 import { notifyAddress, sendEmail, siteUrl } from "@/lib/brevo";
 import { bad, clean, clientIp, isEmail, rateLimited, readJson, tooMany } from "@/lib/api-utils";
 import { bookingConfirmation, bookingNotification } from "@/lib/email-templates";
-import { SlotTakenError, createRequest } from "@/lib/consultation-api";
+import { SlotTakenError, attachConsultationPayment, createRequest } from "@/lib/consultation-api";
 import { longDate, slotLabel } from "@/lib/consultation";
+import { PaymentsNotConfigured, createRazorpayOrder, paymentsEnabled } from "@/lib/razorpay";
+import { getBusinessDetails } from "@/lib/business";
 
 /**
- * A consultation *request*. It is saved in Strapi first (that is the source of truth),
- * which also checks the slot is really open. Emails afterwards are best effort.
+ * A consultation booking. It is saved in Strapi first (that is the source of truth),
+ * which also checks the slot is really open.
+ *
+ * If a fee is set in Strapi (Consultation Availability), the customer is sent straight to
+ * payment, exactly like a product order, and the emails go out once they have paid.
+ * With no fee set, it stays a free request and the emails go out straight away.
  */
 export async function POST(req: Request) {
   const body = await readJson(req);
@@ -28,15 +34,63 @@ export async function POST(req: Request) {
 
   if (rateLimited(`consultation:${clientIp(req)}`, 3, 10 * 60_000)) return tooMany();
 
-  let saved: { reference: string; token: string };
+  const manual = process.env.PAYMENT_MODE !== "razorpay"; // UPI, confirmed by hand in Strapi
+  const currency = locale === "fr" ? "EUR" : "INR";
+
+  let saved: Awaited<ReturnType<typeof createRequest>>;
   try {
-    saved = await createRequest({ name, email, phone, concern, date, slot, language: locale });
+    saved = await createRequest({
+      name, email, phone, concern, date, slot,
+      language: locale,
+      currency,
+      paymentMethod: manual ? "upi_manual" : "razorpay",
+    });
   } catch (err) {
     if (err instanceof SlotTakenError) {
       return NextResponse.json({ error: "That time is no longer available.", code: "slot_unavailable" }, { status: 409 });
     }
     console.error("[consultation] could not save the request:", err);
-    return NextResponse.json({ error: "We couldn't save your request. Please try again in a moment." }, { status: 502 });
+    return NextResponse.json({ error: "We couldn't save your request. Please try again in a moment.", }, { status: 502 });
+  }
+
+  // A fee applies: go to payment. The emails are sent after the payment, not now.
+  if (saved.payment === "pending_payment" || saved.payment === "payment_submitted") {
+    const base = { ok: true, reference: saved.reference, token: saved.token };
+    if (saved.currency === "EUR" && process.env.FR_PAYMENTS_ENABLED !== "true") {
+      return NextResponse.json({ error: "Payments in euros aren't open yet.", code: "payments_fr_off" }, { status: 403 });
+    }
+    if (manual) {
+      if (!(await getBusinessDetails()).upiId) {
+        return NextResponse.json({ error: "Payments aren't switched on yet. Please check back soon.", code: "payments_off" }, { status: 503 });
+      }
+      return NextResponse.json({ ...base, mode: "upi" });
+    }
+    try {
+      if (!paymentsEnabled()) throw new PaymentsNotConfigured("not configured");
+      const rz = await createRazorpayOrder({
+        amountMinor: saved.amountMinor!,
+        currency: saved.currency!,
+        receipt: saved.reference,
+        notes: { consultation: saved.reference },
+      });
+      await attachConsultationPayment(saved.reference, saved.token, rz.id);
+      return NextResponse.json({
+        ...base,
+        mode: "razorpay",
+        razorpayOrderId: rz.id,
+        keyId: rz.keyId,
+        amountMinor: saved.amountMinor,
+        currency: saved.currency,
+        prefill: { name, email, contact: phone },
+      });
+    } catch (err) {
+      console.error("[consultation] could not start the payment:", err);
+      const off = err instanceof PaymentsNotConfigured;
+      return NextResponse.json(
+        { error: off ? "Payments aren't switched on yet. Please check back soon." : "We couldn't start the payment. Please try again.", code: off ? "payments_off" : undefined },
+        { status: off ? 503 : 502 }
+      );
+    }
   }
 
   const statusUrl = `${siteUrl()}${locale === "fr" ? "/fr" : ""}/consultation/confirmed?ref=${encodeURIComponent(saved.reference)}&t=${encodeURIComponent(saved.token)}`;
@@ -58,5 +112,5 @@ export async function POST(req: Request) {
     console.error("[consultation] customer acknowledgement failed:", err);
   }
 
-  return NextResponse.json({ ok: true, reference: saved.reference, token: saved.token });
+  return NextResponse.json({ ok: true, reference: saved.reference, token: saved.token, mode: "free" });
 }

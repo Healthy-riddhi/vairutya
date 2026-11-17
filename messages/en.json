@@ -363,7 +363,15 @@
     "tzParis": "{slot} IST is {paris} in Paris.",
     "pickDate": "Choose a date first to see the available times.",
     "noSlots": "There are no open time slots right now. Please check back soon or <link>contact us</link>.",
-    "taken": "Sorry, that time was just taken. Please choose another."
+    "taken": "Sorry, that time was just taken. Please choose another.",
+    "feeNote": "Consultation fee: {amount}. You'll pay on the next screen to secure your slot.",
+    "continuePay": "Continue to payment — {amount}",
+    "opening": "Opening payment…",
+    "errLoad": "Couldn't load the payment window. Check your connection and try again.",
+    "errConfirm": "Your payment went through, but we couldn't confirm it on screen yet. We'll email you shortly. If you don't hear from us, contact us with reference {ref}.",
+    "errFailed": "The payment didn't go through. You can try again.",
+    "frSoon": "Euro payments aren't open yet, so we can't take this booking. Please check back soon.",
+    "payOff": "Payments aren't switched on yet. Please check back soon."
   },
   "Home": {
     "guidanceTitle": "Expert Guidance",
@@ -534,7 +542,13 @@
     "notFoundTitle": "We couldn't find this request",
     "notFoundText": "The link may be incomplete. Please use the link in your email, or contact us.",
     "contact": "Contact us",
-    "home": "Back to Home"
+    "home": "Back to Home",
+    "paidTitle": "Payment received",
+    "paidText": "Thank you. You asked for {date} at {time} IST. We'll confirm your slot by email shortly. Refresh this page once you have our confirmation to see it here.",
+    "verifyingTitle": "We're verifying your payment",
+    "verifyingText": "We've received your payment reference. We'll email you as soon as it is confirmed, then confirm your slot.",
+    "unpaidTitle": "Your payment wasn't completed",
+    "unpaidText": "Your booking isn't secured until payment is made. You can choose a time and try again."
   },
   "Pay": {
     "title": "Complete your payment",
@@ -564,5 +578,18 @@
     "closedText": "It is no longer waiting for payment. You can place a new order from the shop.",
     "shop": "Back to shop",
     "notSetUp": "UPI payment details aren't set up yet. Please contact us."
+  },
+  "ConsultationPay": {
+    "title": "Complete your payment",
+    "intro": "Pay the exact amount below by UPI, then enter your UPI reference so we can confirm your consultation.",
+    "booking": "Booking {ref}",
+    "slot": "{date} at {time} IST",
+    "note": "Add {ref} in the payment note so we can match it.",
+    "verifyingTitle": "We're verifying your payment",
+    "verifyingText": "We've received your reference {utr}. We'll email you as soon as your payment is confirmed, then confirm your slot.",
+    "viewStatus": "View my booking",
+    "closedTitle": "This booking is closed",
+    "closedText": "It is no longer waiting for payment. You can choose a new time.",
+    "rebook": "Choose a new time"
   }
 }
