@@ -45,7 +45,7 @@ export function QuizRunner({ quiz, onClose }: { quiz: Quiz; onClose: () => void 
 
   if (done) {
     const picks = selected.map((a, qi) => quiz.questions[qi].answers[a as number].outcome);
-    return <AboutYouForm quiz={quiz} picks={picks} onClose={onClose} />;
+    return <AboutYouForm quiz={quiz} picks={picks} answers={selected as number[]} onClose={onClose} />;
   }
 
   return (

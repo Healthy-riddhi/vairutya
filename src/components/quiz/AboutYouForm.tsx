@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ChevronDown } from "lucide-react";
 import { scoreQuiz, type Quiz } from "@/lib/quiz/model";
 import { QuizResults } from "./QuizResults";
@@ -20,8 +20,19 @@ const HAIR_OPTS: Record<string, string> = {
   motivation: "motivations",
 };
 
-export function AboutYouForm({ quiz, picks, onClose }: { quiz: Quiz; picks: number[]; onClose: () => void }) {
+export function AboutYouForm({
+  quiz,
+  picks,
+  answers,
+  onClose,
+}: {
+  quiz: Quiz;
+  picks: number[];
+  answers: number[]; // the answer chosen for each question (position within the question)
+  onClose: () => void;
+}) {
   const t = useTranslations("Quiz");
+  const locale = useLocale();
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
@@ -50,6 +61,24 @@ export function AboutYouForm({ quiz, picks, onClose }: { quiz: Quiz; picks: numb
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSubmitted(true);
+    // The team gets an email with their details, result and answers. Never delays or blocks the results.
+    fetch("/api/quiz", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      keepalive: true,
+      body: JSON.stringify({
+        slug: quiz.slug,
+        locale,
+        answers,
+        firstName,
+        email,
+        ageGroup: values.ageGroup ?? "",
+        identity: values.identity ?? "",
+        country: values.country ?? "",
+        motivation: values.motivation ?? "",
+        newsletter: consent,
+      }),
+    }).catch(() => {});
     // Only people who tick the box are contacted, after a confirmation email (double opt-in).
     if (consent) {
       fetch("/api/newsletter", {
@@ -112,6 +141,7 @@ export function AboutYouForm({ quiz, picks, onClose }: { quiz: Quiz; picks: numb
             {t("results")}
           </button>
         </div>
+        <p className="text-center text-[12px] leading-relaxed text-ink-muted">{t("shareNote")}</p>
       </form>
     </div>
   );

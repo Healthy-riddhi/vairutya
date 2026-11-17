@@ -115,6 +115,89 @@ export function contactNotification(opts: {
   };
 }
 
+export type QuizSubmission = {
+  to: string;
+  quizTitle: string;
+  quizSlug: string;
+  language: string;
+  firstName: string;
+  email: string;
+  ageGroup: string;
+  identity: string;
+  country: string;
+  motivation: string;
+  newsletter: boolean;
+  /** Outcome names with their share of the answers, e.g. { name: "Vata", percent: 44 }. */
+  balance: { name: string; percent: number }[];
+  /** The outcome(s) that won. More than one means a tie. */
+  winners: string[];
+  /** One entry per question, in order. */
+  answers: { question: string; answer: string; outcome: string }[];
+};
+
+/** Quiz finished → an email to the team with the person's details, result and every answer. */
+export function quizNotification(q: QuizSubmission): Mail {
+  const when = `${new Date().toLocaleString("en-GB", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })} IST`;
+  const result = q.winners.join(" + ");
+  const balance = q.balance.map((b) => `${b.name} ${b.percent}%`).join("  ·  ");
+  const none = "—";
+  const details: [string, string][] = [
+    ["Name", q.firstName],
+    ["Email", q.email],
+    ["Age group", q.ageGroup || none],
+    ["Gender", q.identity || none],
+    ["Country", q.country || none],
+    ...(q.motivation ? ([["Motivation", q.motivation]] as [string, string][]) : []),
+    ["Newsletter", q.newsletter ? "Yes, they ticked the box (confirmation email sent to them)" : "No"],
+    ["Language", q.language],
+    ["Submitted", when],
+  ];
+  const resultRows: [string, string][] = [
+    ["Quiz", q.quizTitle],
+    ["Result", result],
+    ["Balance", balance],
+  ];
+  const answerRows = q.answers
+    .map(
+      (a, i) =>
+        `<tr><td style="padding:10px 12px 10px 0;border-bottom:1px solid #e7e1dc;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:${MUTED};vertical-align:top;width:26px;">${i + 1}</td><td style="padding:10px 0;border-bottom:1px solid #e7e1dc;font-size:14px;line-height:1.55;vertical-align:top;"><span style="color:${MUTED};">${esc(a.question)}</span><br><strong>${esc(a.answer)}</strong> <span style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:${CLAY};">(${esc(a.outcome)})</span></td></tr>`
+    )
+    .join("");
+  const h = (t: string) =>
+    `<p style="margin:26px 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:${CLAY};">${esc(t)}</p>`;
+
+  const text = [
+    `New quiz result: ${q.quizTitle}`,
+    "",
+    `Result: ${result}`,
+    `Balance: ${balance}`,
+    "",
+    ...details.map(([k, v]) => `${k}: ${v}`),
+    "",
+    "Answers:",
+    ...q.answers.map((a, i) => `${i + 1}. ${a.question}\n   → ${a.answer} (${a.outcome})`),
+    "",
+    "(Reply to this email to write to them directly.)",
+  ].join("\n");
+
+  return {
+    to: { email: q.to },
+    replyTo: { email: q.email, name: oneLine(q.firstName) },
+    subject: `New quiz result: ${oneLine(q.quizTitle)} — ${oneLine(q.firstName)} (${oneLine(result)})`,
+    html: layout(
+      "New quiz result",
+      rows(resultRows) +
+        h("About them") +
+        rows(details) +
+        h("Their answers") +
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;border-top:1px solid #e7e1dc;">${answerRows}</table>` +
+        p(`<span style="font-size:14px;color:${MUTED};">Reply to this email to write to ${esc(oneLine(q.firstName))} directly.</span>`),
+      `${oneLine(q.firstName)} finished the ${oneLine(q.quizTitle)} quiz: ${result}.`
+    ),
+    text,
+  };
+}
+
 export type Booking = {
   name: string;
   email: string;
