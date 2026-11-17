@@ -4,6 +4,8 @@ import { bad, clean, clientIp, emailFailure, isEmail, rateLimited, readJson, too
 import { quizNotification } from "@/lib/email-templates";
 import { getQuizBySlug } from "@/lib/quiz/cms";
 import { scoreQuiz } from "@/lib/quiz/model";
+import { sequenceFor } from "@/lib/skin-drip";
+import { subscribeToDrip } from "@/lib/quiz-drip-api";
 
 /**
  * A finished quiz → an email to the team with the person's details, result and every answer.
@@ -32,6 +34,27 @@ export async function POST(req: Request) {
 
   const chosen = (picked as number[]).map((a, i) => quiz.questions[i].answers[a]);
   const score = scoreQuiz(quiz.outcomes.length, chosen.map((c) => c.outcome));
+
+  // Skin quiz + newsletter box ticked: start their follow-up emails for this result. Best effort:
+  // it never blocks the quiz. The emails only go out once they have confirmed their email address.
+  if (body.newsletter === true && /skin/i.test(quiz.slug)) {
+    const sequence = sequenceFor(score.winners.map((i) => quiz.outcomes[i].name));
+    if (sequence) {
+      try {
+        await subscribeToDrip({
+          email: body.email,
+          firstName,
+          quizSlug: quiz.slug,
+          sequence,
+          language: body.locale === "fr" ? "fr" : "en",
+        });
+      } catch (err) {
+        console.error("[quiz] could not start the follow-up emails:", err);
+      }
+    } else {
+      console.warn("[quiz] skin quiz result has no matching email sequence:", score.winners.map((i) => quiz.outcomes[i].name));
+    }
+  }
 
   try {
     await sendEmail(

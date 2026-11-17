@@ -150,9 +150,16 @@ export type Mail = {
   html: string;
   text: string;
   replyTo?: { email: string; name?: string };
+  /** Extra email headers, e.g. List-Unsubscribe. */
+  headers?: Record<string, string>;
 };
 
-export async function sendEmail(mail: Mail): Promise<void> {
+/**
+ * `respectBlocks`: for marketing-style emails (the skin-quiz series). Brevo's "blocked" list is then
+ * honoured, so someone who bounced or marked us as spam is never emailed again. Account emails
+ * (receipts, password resets) leave it off so an old unsubscribe can't cost anyone their account email.
+ */
+export async function sendEmail(mail: Mail, opts: { respectBlocks?: boolean } = {}): Promise<void> {
   if (devFallback()) {
     console.log(
       `[brevo:dev] EMAIL → ${mail.to.email}\n  subject: ${mail.subject}\n  replyTo: ${mail.replyTo?.email ?? "-"}\n  ${mail.text.replace(/\n/g, "\n  ")}`
@@ -160,7 +167,7 @@ export async function sendEmail(mail: Mail): Promise<void> {
     return;
   }
 
-  await liftTransactionalBlock(mail.to.email);
+  if (!opts.respectBlocks) await liftTransactionalBlock(mail.to.email);
 
   const res = await brevoPost("/smtp/email", {
     sender: {
@@ -172,9 +179,31 @@ export async function sendEmail(mail: Mail): Promise<void> {
     htmlContent: mail.html,
     textContent: mail.text,
     ...(mail.replyTo ? { replyTo: mail.replyTo } : {}),
+    ...(mail.headers ? { headers: mail.headers } : {}),
   });
 
   if (!res.ok) throw new BrevoError(res.status, (await res.text()).slice(0, 500));
+}
+
+/**
+ * Has this person confirmed the newsletter (double opt-in) and not left it?
+ *  - "ok": they are on the newsletter list
+ *  - "pending": no confirmation yet (the confirmation email is still unanswered)
+ *  - "blocked": they unsubscribed, or Brevo blocks their address
+ * The skin-quiz emails only go to people who say "ok". In development with no Brevo key it is always "ok".
+ */
+export async function newsletterConsent(email: string): Promise<"ok" | "pending" | "blocked"> {
+  if (devFallback()) return "ok";
+  const listId = Number(requireEnv("BREVO_NEWSLETTER_LIST_ID"));
+  const res = await fetch(`${API}/contacts/${encodeURIComponent(email)}`, {
+    headers: { "api-key": requireEnv("BREVO_API_KEY"), accept: "application/json" },
+    cache: "no-store",
+  });
+  if (res.status === 404) return "pending";
+  if (!res.ok) throw new BrevoError(res.status, (await res.text()).slice(0, 300));
+  const c = (await res.json()) as { listIds?: number[]; emailBlacklisted?: boolean; listUnsubscribed?: number[] };
+  if (c.emailBlacklisted || c.listUnsubscribed?.includes(listId)) return "blocked";
+  return c.listIds?.includes(listId) ? "ok" : "pending";
 }
 
 /** Where messages to the team (contact form, booking requests) are delivered. */
