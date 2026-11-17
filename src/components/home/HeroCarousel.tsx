@@ -171,12 +171,6 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
           />
         )}
 
-        {/* Soft fog at the bottom of the banner (phones): fades into the page colour behind the browser toolbar */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-[15] h-44 bg-gradient-to-t from-cream via-cream/70 to-transparent backdrop-blur-[6px] [-webkit-mask-image:linear-gradient(to_top,black_0%,black_35%,transparent_100%)] [mask-image:linear-gradient(to_top,black_0%,black_35%,transparent_100%)] sm:hidden"
-        />
-
         {/* Call-to-action in the lower part of the banner (Aesop style). Shown only for slides that have a button label in Strapi. */}
         {active.buttonLabel && active.buttonLink && (
           <div className="pointer-events-none absolute inset-x-5 bottom-36 z-20 flex justify-center sm:inset-x-0 sm:bottom-20">
