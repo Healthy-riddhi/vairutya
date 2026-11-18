@@ -8,7 +8,8 @@ import { CalendarPicker } from "@/components/consultation/CalendarPicker";
 import { StepLabel } from "@/components/consultation/StepLabel";
 import type { ConsultationContent } from "@/types/content";
 import { parisLabel, slotLabel } from "@/lib/consultation";
-import { formatMinor } from "@/lib/money";
+import { formatMinor, type Currency } from "@/lib/money";
+import { perMonthLabel, type ConsultationPackage } from "@/lib/consultation-packages";
 import { loadRazorpay, type PaymentResponse } from "@/lib/razorpay-client";
 
 const keyOf = (d: Date) =>
@@ -18,12 +19,15 @@ export function ConsultationClient({
   content,
   days,
   feeMinor,
+  packages,
 }: {
   content: ConsultationContent | null;
   /** Open slots from Strapi: { "2026-12-04": ["10:00", "11:00"] } */
   days: Record<string, string[]>;
   /** Consultation fee in paise/cents for this visitor's site. 0 means no payment. */
   feeMinor: number;
+  /** What can be booked, from Strapi (Consultation Package). Empty: the single fee above applies. */
+  packages: ConsultationPackage[];
 }) {
   const t = useTranslations("Consultation");
   const locale = useLocale();
@@ -39,6 +43,12 @@ export function ConsultationClient({
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const bases = packages.filter((p) => p.kind === "base");
+  const programs = packages.filter((p) => p.kind === "program");
+  const addOns = packages.filter((p) => p.kind === "addon");
+  const hasPackages = bases.length + programs.length > 0;
+  const [pkgSlug, setPkgSlug] = useState(bases[0]?.slug ?? programs[0]?.slug ?? "");
+  const [addOnSlug, setAddOnSlug] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const bookingRef = useRef<HTMLDivElement>(null);
@@ -49,8 +59,22 @@ export function ConsultationClient({
   const paris =
     locale === "fr" && selectedKey && selectedSlot && slotValid ? parisLabel(selectedKey, selectedSlot) : null;
 
-  const fee = feeMinor > 0 ? formatMinor(feeMinor, locale === "fr" ? "EUR" : "INR") : null;
-  const canBook = Boolean(selectedKey && slotValid && name.trim() && phone.trim() && email.trim());
+  const currency: Currency = locale === "fr" ? "EUR" : "INR";
+  const chosen = hasPackages ? [...bases, ...programs].find((p) => p.slug === pkgSlug) : undefined;
+  // An add-on only goes with a base package
+  const chosenAddOn = chosen?.kind === "base" ? addOns.find((a) => a.slug === addOnSlug) : undefined;
+  const totalMinor = hasPackages ? (chosen?.priceMinor ?? 0) + (chosenAddOn?.priceMinor ?? 0) : feeMinor;
+  const fee = totalMinor > 0 ? formatMinor(totalMinor, currency) : null;
+  // The step numbers shift by one when there is a "choose your consultation" step in front
+  const n = hasPackages ? 1 : 0;
+  const canBook = Boolean(
+    (!hasPackages || chosen) && selectedKey && slotValid && name.trim() && phone.trim() && email.trim()
+  );
+
+  function choosePackage(slug: string) {
+    setPkgSlug(slug);
+    if (![...bases].some((b) => b.slug === slug)) setAddOnSlug(""); // add-ons are only for the base package
+  }
 
   async function submitBooking() {
     if (!canBook || sending || !selectedKey || !selectedSlot) return;
@@ -60,7 +84,11 @@ export function ConsultationClient({
       const res = await fetch("/api/consultation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone, email, concern, date: selectedKey, slot: selectedSlot, locale }),
+        body: JSON.stringify({
+          name, phone, email, concern, date: selectedKey, slot: selectedSlot, locale,
+          packageSlug: hasPackages ? pkgSlug : "",
+          addOnSlug: chosenAddOn ? chosenAddOn.slug : "",
+        }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -68,6 +96,7 @@ export function ConsultationClient({
           router.refresh(); // reload the open slots
           throw new Error(t("taken"));
         }
+        if (data?.code === "package_invalid") router.refresh(); // reload what is on offer
         if (data?.code === "payments_fr_off") throw new Error(t("frSoon"));
         if (data?.code === "payments_off") throw new Error(t("payOff"));
         throw new Error(data?.error ?? t("generic"));
@@ -225,7 +254,57 @@ export function ConsultationClient({
           </p>
         ) : (
           <>
-            <StepLabel number={1} label={t("step1")} />
+            {hasPackages && (
+              <>
+                <StepLabel number={1} label={t("stepPackage")} />
+                <div className="mb-12">
+                  {bases.length > 0 && (
+                    <div className="mb-8">
+                      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">{t("startHere")}</p>
+                      <div className="grid grid-cols-1 gap-4">
+                        {bases.map((b) => (
+                          <div key={b.slug}>
+                            <PackageCard pkg={b} selected={pkgSlug === b.slug} onSelect={() => choosePackage(b.slug)} currency={currency} wide />
+                            {pkgSlug === b.slug && addOns.length > 0 && (
+                              <div className="mt-3 rounded-2xl border border-line/20 bg-white p-5">
+                                <p className="mb-3 text-[13px] font-semibold text-ink">{t("addOnTitle")}</p>
+                                <div role="radiogroup" aria-label={t("addOnTitle")} className="flex flex-col gap-2.5">
+                                  <AddOnRow label={t("addOnNone")} selected={addOnSlug === ""} onSelect={() => setAddOnSlug("")} />
+                                  {addOns.map((a) => (
+                                    <AddOnRow
+                                      key={a.slug}
+                                      label={a.title}
+                                      detail={a.includes.join(" ")}
+                                      price={`+${formatMinor(a.priceMinor, currency)}`}
+                                      total={t("addOnTotal", { amount: formatMinor(b.priceMinor + a.priceMinor, currency) })}
+                                      selected={addOnSlug === a.slug}
+                                      onSelect={() => setAddOnSlug(a.slug)}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {programs.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">{t("programsTitle")}</p>
+                      <p className="mb-4 text-sm leading-relaxed text-ink-muted">{t("programsIntro")}</p>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        {programs.map((p) => (
+                          <PackageCard key={p.slug} pkg={p} selected={pkgSlug === p.slug} onSelect={() => choosePackage(p.slug)} currency={currency} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            <StepLabel number={1 + n} label={t("step1")} />
             <CalendarPicker
               month={calMonth}
               onMonthChange={setCalMonth}
@@ -237,7 +316,7 @@ export function ConsultationClient({
               available={availableKeys}
             />
 
-            <StepLabel number={2} label={t("step2")} />
+            <StepLabel number={2 + n} label={t("step2")} />
             {selectedKey ? (
               <>
                 <div className="mb-3 flex flex-wrap gap-2.5">
@@ -265,7 +344,7 @@ export function ConsultationClient({
               <p className="mb-10 text-sm text-ink-muted">{t("pickDate")}</p>
             )}
 
-            <StepLabel number={3} label={t("step3")} />
+            <StepLabel number={3 + n} label={t("step3")} />
             <div className="mb-10 flex flex-col gap-3.5">
               <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                 <div>
@@ -287,7 +366,12 @@ export function ConsultationClient({
               </div>
             </div>
 
-            {fee && <p className="mb-4 text-center text-sm text-ink-muted">{t("feeNote", { amount: fee })}</p>}
+            {fee && hasPackages && chosen && (
+              <p className="mb-4 text-center text-sm text-ink-muted">
+                {t("yourChoice", { items: [chosen.title, chosenAddOn?.title].filter(Boolean).join(" + "), amount: fee })}
+              </p>
+            )}
+            {fee && !hasPackages && <p className="mb-4 text-center text-sm text-ink-muted">{t("feeNote", { amount: fee })}</p>}
             {error && <p role="alert" className="mb-4 text-center text-sm text-clay">{error}</p>}
             <div className="flex justify-center">
               <button
@@ -303,5 +387,119 @@ export function ConsultationClient({
         )}
       </div>
     </div>
+  );
+}
+
+/** One option you can pick: the starter package or a long-term program. */
+function PackageCard({
+  pkg,
+  selected,
+  onSelect,
+  currency,
+  wide = false,
+}: {
+  pkg: ConsultationPackage;
+  selected: boolean;
+  onSelect: () => void;
+  currency: Currency;
+  wide?: boolean;
+}) {
+  const t = useTranslations("Consultation");
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={`flex w-full flex-col rounded-2xl border bg-white p-6 text-left transition-colors ${
+        wide ? "" : "h-full" /* programs sit in a row and share one height */
+      } ${selected ? "border-teal ring-2 ring-teal/30" : "border-line/30 hover:border-teal"}`}
+    >
+      <span className="mb-4 flex items-start justify-between gap-3">
+        <span>
+          {pkg.months && (
+            <span className="mb-2 inline-block rounded-full bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-teal">
+              {t("months", { count: pkg.months })}
+            </span>
+          )}
+          <span className="block font-serif text-xl font-medium leading-snug text-ink">{pkg.title}</span>
+        </span>
+        <span
+          aria-hidden
+          className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+            selected ? "border-teal bg-teal" : "border-line bg-white"
+          }`}
+        >
+          {selected && <span className="h-2 w-2 rounded-full bg-white" />}
+        </span>
+      </span>
+      <span className="mb-1 block font-display text-2xl font-extrabold text-teal">{formatMinor(pkg.priceMinor, currency)}</span>
+      {pkg.months ? (
+        <span className="mb-4 block text-xs text-ink-muted">{t("perMonth", { amount: perMonthLabel(pkg.priceMinor, pkg.months, currency) })}</span>
+      ) : (
+        <span className="mb-4 block" />
+      )}
+      {pkg.idealFor && (
+        <span className="mb-4 block text-sm leading-relaxed text-ink">
+          <span className="font-semibold">{t("idealFor")}</span> {pkg.idealFor}
+        </span>
+      )}
+      <span className={`block ${wide ? "grid grid-cols-1 gap-x-6 sm:grid-cols-2" : ""}`}>
+        {pkg.includes.map((item, i) => (
+          <span key={i} className="mb-2 flex items-start gap-2 text-[13px] leading-relaxed text-ink-muted">
+            <CheckCircle2 size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-teal" />
+            <span>{item}</span>
+          </span>
+        ))}
+      </span>
+    </button>
+  );
+}
+
+/** One row of the add-on choice under the starter package. */
+function AddOnRow({
+  label,
+  detail,
+  price,
+  total,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  detail?: string;
+  price?: string;
+  total?: string;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={`flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
+        selected ? "border-teal bg-teal/[0.05]" : "border-line/30 hover:border-teal"
+      }`}
+    >
+      <span
+        aria-hidden
+        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+          selected ? "border-teal bg-teal" : "border-line bg-white"
+        }`}
+      >
+        {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+      </span>
+      <span className="flex-1">
+        <span className="block text-sm font-semibold text-ink">{label}</span>
+        {detail && <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-muted">{detail}</span>}
+      </span>
+      {price && (
+        <span className="shrink-0 text-right">
+          <span className="block text-sm font-semibold text-ink">{price}</span>
+          {total && <span className="block text-[11px] text-ink-muted">{total}</span>}
+        </span>
+      )}
+    </button>
   );
 }

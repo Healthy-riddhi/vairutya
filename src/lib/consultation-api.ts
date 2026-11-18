@@ -5,6 +5,20 @@ export type Availability = Record<string, string[]>;
 
 export type Fees = { INR: number; EUR: number }; // paise / cents, 0 = no payment
 
+/** A package as Strapi sends it (both languages, prices in paise / cents). */
+export type RawPackage = {
+  slug: string;
+  kind: "base" | "addon" | "program";
+  months: number | null;
+  title: string;
+  titleFr: string | null;
+  idealFor: string | null;
+  idealForFr: string | null;
+  includes: string[];
+  includesFr: string[];
+  priceMinor: { INR: number; EUR: number };
+};
+
 export type PaymentStatus = "pending_payment" | "payment_submitted" | "paid" | "payment_failed";
 
 export type RequestView = {
@@ -14,6 +28,9 @@ export type RequestView = {
   date: string;
   slot: string;
   firstName: string;
+  /** What they bought, named in their own language. null on older requests. */
+  packageTitle: string | null;
+  addOnTitle: string | null;
   name: string;
   email: string;
   phone: string;
@@ -39,6 +56,8 @@ export type CreatedRequest = {
 };
 
 export class SlotTakenError extends Error {}
+/** The chosen package or add-on isn't (or is no longer) on offer. */
+export class PackageError extends Error {}
 
 async function call(path: string, init: { method?: string; body?: unknown } = {}) {
   const res = await fetch(`${STRAPI_URL}/api/consultation${path}`, {
@@ -54,7 +73,7 @@ async function call(path: string, init: { method?: string; body?: unknown } = {}
 }
 
 /** Open slots, and what a consultation costs (so the booking page can show the fee). */
-export async function getBookingInfo(): Promise<{ days: Availability; fees: Fees }> {
+export async function getBookingInfo(): Promise<{ days: Availability; fees: Fees; packages: RawPackage[] }> {
   try {
     const r = await call("/availability");
     if (!r.ok) console.error("[consultation] availability responded", r.status);
@@ -62,10 +81,11 @@ export async function getBookingInfo(): Promise<{ days: Availability; fees: Fees
     return {
       days: r.ok ? (r.json?.days ?? {}) : {},
       fees: { INR: Number(f?.INR) > 0 ? Number(f.INR) : 0, EUR: Number(f?.EUR) > 0 ? Number(f.EUR) : 0 },
+      packages: r.ok && Array.isArray(r.json?.packages) ? r.json.packages : [],
     };
   } catch (err) {
     console.error("[consultation] could not load availability:", err);
-    return { days: {}, fees: { INR: 0, EUR: 0 } };
+    return { days: {}, fees: { INR: 0, EUR: 0 }, packages: [] };
   }
 }
 
@@ -83,9 +103,12 @@ export async function createRequest(data: {
   language: "en" | "fr";
   currency: "INR" | "EUR";
   paymentMethod: "upi_manual" | "razorpay";
+  packageSlug: string;
+  addOnSlug: string;
 }): Promise<CreatedRequest> {
   const r = await call("/requests", { method: "POST", body: data });
   if (r.status === 409) throw new SlotTakenError();
+  if (r.status === 400 && /^(package|addon)_invalid$/.test(r.json?.error?.message ?? "")) throw new PackageError();
   if (!r.ok || !r.json?.reference) throw new Error(`Could not save the request (${r.status})`);
   return {
     reference: r.json.reference,

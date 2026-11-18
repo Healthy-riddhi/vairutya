@@ -45,6 +45,7 @@ export default async function ConsultationPayPage({
 
   const amount = formatMinor(r.amountMinor, r.currency);
   const when = t("slot", { date: longDate(r.date, locale), time: slotLabel(r.slot, locale) });
+  const bought = [r.packageTitle, r.addOnTitle].filter(Boolean).join(" + ");
 
   if (r.paymentStatus === "payment_submitted") {
     return shell(
@@ -54,7 +55,8 @@ export default async function ConsultationPayPage({
         </div>
         <h1 className="mb-3 font-serif text-3xl font-medium text-ink">{t("verifyingTitle")}</h1>
         <p className="mb-2 text-sm text-ink-muted">{t("booking", { ref: r.reference })} · {amount}</p>
-        <p className="mb-2 text-sm capitalize text-ink-muted">{when}</p>
+        {bought && <p className="mb-2 text-sm font-semibold text-ink">{bought}</p>}
+        <p className="mb-2 text-sm text-ink-muted first-letter:uppercase">{when}</p>
         <p className="mb-8 max-w-[440px] text-base leading-relaxed text-ink-muted">{t("verifyingText", { utr: r.utr ?? "" })}</p>
         <div className="mb-8 w-full rounded-2xl border border-line/20 bg-white p-6 text-left">
           <p className="mb-3 text-sm font-semibold text-ink">{pay("wrongRef")}</p>
@@ -80,7 +82,8 @@ export default async function ConsultationPayPage({
 
       <div className="mb-6 rounded-2xl border border-line/20 bg-white p-6 text-center">
         <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted">{t("booking", { ref: r.reference })}</p>
-        <p className="mb-4 text-sm capitalize text-ink-muted">{when}</p>
+        {bought && <p className="mb-1 text-sm font-semibold text-ink">{bought}</p>}
+        <p className="mb-4 text-sm text-ink-muted first-letter:uppercase">{when}</p>
         <p className="mb-1 text-sm text-ink-muted">{pay("amount")}</p>
         <p className="mb-5 font-display text-4xl font-extrabold text-teal">{amount}</p>
 

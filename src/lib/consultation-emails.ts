@@ -6,6 +6,7 @@ import type { RequestView } from "@/lib/consultation-api";
 
 const MUTED = "#6b6b63";
 
+const bought = (r: RequestView) => [r.packageTitle, r.addOnTitle].filter(Boolean).join(" + ");
 const money = (r: RequestView) => formatMinor(r.amountMinor ?? 0, r.currency ?? "INR");
 const first = (r: RequestView) => r.firstName || (r.language === "fr" ? "" : "there");
 const when = (r: RequestView, lang: "en" | "fr") =>
@@ -25,6 +26,7 @@ function toVerify(r: RequestView, utr: string): Mail {
     html: layout(
       `Payment to verify: ${r.reference}`,
       rows([
+        ...(bought(r) ? ([["Package", bought(r)]] as [string, string][]) : []),
         ["Expected amount", money(r)],
         ["UPI reference", utr],
         ["Slot", slot],
@@ -37,7 +39,7 @@ function toVerify(r: RequestView, utr: string): Mail {
         ),
       `${r.name} says they paid ${money(r)} for ${slot}. Please verify.`
     ),
-    text: `Payment to verify: consultation ${r.reference}\nExpected: ${money(r)}\nUPI reference: ${utr}\nSlot: ${slot}\nName: ${r.name} <${r.email}> ${r.phone}\n\nCheck your bank or UPI app, then set Payment status to "paid" in Strapi (Consultation Request). Then add the meeting link and set the request status to "confirmed".`,
+    text: `Payment to verify: consultation ${r.reference}\n${bought(r) ? `Package: ${bought(r)}\n` : ""}Expected: ${money(r)}\nUPI reference: ${utr}\nSlot: ${slot}\nName: ${r.name} <${r.email}> ${r.phone}\n\nCheck your bank or UPI app, then set Payment status to "paid" in Strapi (Consultation Request). Then add the meeting link and set the request status to "confirmed".`,
   };
 }
 
@@ -66,8 +68,8 @@ function paidCustomer(r: RequestView): Mail {
   const fr = r.language === "fr";
   const hi = fr ? (first(r) ? `Bonjour ${first(r)},` : "Bonjour,") : `Hi ${first(r)},`;
   const line = fr
-    ? `Nous avons bien reçu votre paiement de ${money(r)} pour la consultation du :`
-    : `We’ve received your payment of ${money(r)} for your consultation on:`;
+    ? `Nous avons bien reçu votre paiement de ${money(r)}${bought(r) ? ` (${bought(r)})` : ""} pour la consultation du :`
+    : `We’ve received your payment of ${money(r)}${bought(r) ? ` (${bought(r)})` : ""} for your consultation on:`;
   const next = fr
     ? "Nous confirmons votre créneau par e-mail très prochainement, avec le lien de l’appel."
     : "We’ll confirm your slot by email very shortly, with the link to your call.";
@@ -95,6 +97,7 @@ function paidOwner(r: RequestView): Mail {
     html: layout(
       "New paid consultation",
       rows([
+        ...(bought(r) ? ([["Package", bought(r)]] as [string, string][]) : []),
         ["Paid", money(r)],
         ["Slot", slot],
         ["Name", r.name],
@@ -105,7 +108,7 @@ function paidOwner(r: RequestView): Mail {
         p(`<span style="font-size:14px;color:${MUTED};">This is paid but <strong>not confirmed</strong> yet. Open the request in Strapi (Consultation Request), add the meeting link and set the status to <strong>confirmed</strong>. The customer is then emailed automatically.</span>`),
       `${r.name} paid ${money(r)} for ${slot}.`
     ),
-    text: `New paid consultation ${r.reference}\nPaid: ${money(r)}\nSlot: ${slot}\nName: ${r.name} <${r.email}> ${r.phone}\n\nNot confirmed yet: add the meeting link and set the status to "confirmed" in Strapi.`,
+    text: `New paid consultation ${r.reference}\n${bought(r) ? `Package: ${bought(r)}\n` : ""}Paid: ${money(r)}\nSlot: ${slot}\nName: ${r.name} <${r.email}> ${r.phone}\n\nNot confirmed yet: add the meeting link and set the status to "confirmed" in Strapi.`,
   };
 }
 

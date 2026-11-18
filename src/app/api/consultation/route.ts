@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { notifyAddress, sendEmail, siteUrl } from "@/lib/brevo";
 import { bad, clean, clientIp, isEmail, rateLimited, readJson, tooMany } from "@/lib/api-utils";
 import { bookingConfirmation, bookingNotification } from "@/lib/email-templates";
-import { SlotTakenError, attachConsultationPayment, createRequest } from "@/lib/consultation-api";
+import { PackageError, SlotTakenError, attachConsultationPayment, createRequest } from "@/lib/consultation-api";
 import { longDate, slotLabel } from "@/lib/consultation";
 import { PaymentsNotConfigured, createRazorpayOrder, paymentsEnabled } from "@/lib/razorpay";
 import { getBusinessDetails } from "@/lib/business";
@@ -11,9 +11,9 @@ import { getBusinessDetails } from "@/lib/business";
  * A consultation booking. It is saved in Strapi first (that is the source of truth),
  * which also checks the slot is really open.
  *
- * If a fee is set in Strapi (Consultation Availability), the customer is sent straight to
- * payment, exactly like a product order, and the emails go out once they have paid.
- * With no fee set, it stays a free request and the emails go out straight away.
+ * The customer chooses a package (and maybe an add-on), priced in Strapi under Consultation Package.
+ * They are sent straight to payment, exactly like a product order, and the emails go out once they
+ * have paid. With no packages and no fee set, it stays a free request and the emails go out straight away.
  */
 export async function POST(req: Request) {
   const body = await readJson(req);
@@ -23,6 +23,8 @@ export async function POST(req: Request) {
   const concern = clean(body?.concern, 2000);
   const date = clean(body?.date, 10);
   const slot = clean(body?.slot, 5);
+  const packageSlug = clean(body?.packageSlug, 120);
+  const addOnSlug = clean(body?.addOnSlug, 120);
   const locale: "en" | "fr" = body?.locale === "fr" ? "fr" : "en";
 
   if (!body || !name || !phone || !isEmail(email)) {
@@ -44,8 +46,13 @@ export async function POST(req: Request) {
       language: locale,
       currency,
       paymentMethod: manual ? "upi_manual" : "razorpay",
+      packageSlug,
+      addOnSlug,
     });
   } catch (err) {
+    if (err instanceof PackageError) {
+      return NextResponse.json({ error: "That option isn't available any more. Please choose again.", code: "package_invalid" }, { status: 400 });
+    }
     if (err instanceof SlotTakenError) {
       return NextResponse.json({ error: "That time is no longer available.", code: "slot_unavailable" }, { status: 409 });
     }

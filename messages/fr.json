@@ -371,7 +371,18 @@
     "errConfirm": "Votre paiement a bien été effectué, mais nous n’avons pas encore pu le confirmer à l’écran. Nous vous écrirons sous peu. Sans nouvelles de notre part, contactez-nous avec la référence {ref}.",
     "errFailed": "Le paiement n’a pas abouti. Vous pouvez réessayer.",
     "frSoon": "Les paiements en euros ne sont pas encore ouverts, nous ne pouvons donc pas enregistrer cette réservation. Revenez bientôt.",
-    "payOff": "Les paiements ne sont pas encore activés. Revenez bientôt."
+    "payOff": "Les paiements ne sont pas encore activés. Revenez bientôt.",
+    "stepPackage": "Choisissez votre consultation",
+    "startHere": "Pour commencer",
+    "addOnTitle": "Aller plus loin (facultatif)",
+    "addOnNone": "Sans option",
+    "addOnTotal": "Total {amount}",
+    "programsTitle": "Programmes sur la durée",
+    "programsIntro": "Un plan de 7 jours ne peut pas vous accompagner à travers la chaleur de l’été, l’humidité de la mousson et la sécheresse de l’hiver. Ces programmes suivent la Ritucharya, le mode de vie ayurvédique selon les saisons, avec un accompagnement continu.",
+    "months": "{count} mois",
+    "perMonth": "Environ {amount} par mois",
+    "idealFor": "Idéal pour :",
+    "yourChoice": "Votre choix : {items}, {amount}. Vous paierez à l’écran suivant pour réserver votre créneau."
   },
   "Home": {
     "guidanceTitle": "Accompagnement d’experts",

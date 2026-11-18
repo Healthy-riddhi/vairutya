@@ -371,7 +371,18 @@
     "errConfirm": "Your payment went through, but we couldn't confirm it on screen yet. We'll email you shortly. If you don't hear from us, contact us with reference {ref}.",
     "errFailed": "The payment didn't go through. You can try again.",
     "frSoon": "Euro payments aren't open yet, so we can't take this booking. Please check back soon.",
-    "payOff": "Payments aren't switched on yet. Please check back soon."
+    "payOff": "Payments aren't switched on yet. Please check back soon.",
+    "stepPackage": "Choose your consultation",
+    "startHere": "Start here",
+    "addOnTitle": "Go deeper (optional)",
+    "addOnNone": "No add-on",
+    "addOnTotal": "Total {amount}",
+    "programsTitle": "Long-term programs",
+    "programsIntro": "A single 7-day plan can’t carry you through summer heat, monsoon humidity and winter dryness. These programs follow Ritucharya, Ayurvedic seasonal living, with ongoing support.",
+    "months": "{count} months",
+    "perMonth": "About {amount} a month",
+    "idealFor": "Ideal for:",
+    "yourChoice": "Your choice: {items}, {amount}. You’ll pay on the next screen to secure your slot."
   },
   "Home": {
     "guidanceTitle": "Expert Guidance",
