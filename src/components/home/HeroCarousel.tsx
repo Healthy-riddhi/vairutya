@@ -192,7 +192,7 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
 
         {/* Windowed dot navigation */}
         {total > 1 && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-24 z-20 flex sm:bottom-6 items-center justify-center gap-2">
+          <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex items-center justify-center gap-2 sm:top-auto sm:bottom-6">
             {dotIndices.map((i) => {
               const isActive = i === index;
               const isEdgePeek =
