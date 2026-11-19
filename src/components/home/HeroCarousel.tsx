@@ -192,7 +192,7 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
 
         {/* Windowed dot navigation */}
         {total > 1 && (
-          <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex items-center justify-center gap-2 sm:top-auto sm:bottom-6">
+          <div className="pointer-events-none absolute inset-x-0 bottom-24 z-20 flex sm:bottom-6 items-center justify-center gap-1.5">
             {dotIndices.map((i) => {
               const isActive = i === index;
               const isEdgePeek =
@@ -206,12 +206,12 @@ export function HeroCarousel({ slides: cmsSlides = [] }: { slides?: HeroSlide[] 
                   onClick={() => goTo(i)}
                   aria-label={t("goToSlide", { n: i + 1 })}
                   aria-current={isActive}
-                  className={`pointer-events-auto relative shrink-0 rounded-full transition-all duration-300 before:absolute before:-inset-x-1 before:-inset-y-3 before:content-[''] ${
+                  className={`pointer-events-auto relative shrink-0 rounded-full transition-all duration-300 before:absolute before:-inset-x-1.5 before:-inset-y-3.5 before:content-[''] ${
                     isActive
-                      ? "h-2.5 w-7 bg-white"
+                      ? "h-1.5 w-5 bg-white"
                       : isEdgePeek
-                      ? "h-1.5 w-1.5 bg-white/35"
-                      : "h-2.5 w-2.5 bg-white/55 hover:bg-white/75"
+                      ? "h-1 w-1 bg-white/35"
+                      : "h-1.5 w-1.5 bg-white/55 hover:bg-white/75"
                   }`}
                 />
               );
