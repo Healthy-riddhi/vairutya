@@ -51,7 +51,7 @@ async function brevoPost(path: string, body: unknown): Promise<Response> {
   });
 }
 
-async function brevoRequest(method: "PUT" | "DELETE", path: string, body?: unknown): Promise<Response> {
+async function brevoRequest(method: "GET" | "PUT" | "DELETE", path: string, body?: unknown): Promise<Response> {
   return fetch(`${API}${path}`, {
     method,
     headers: {
@@ -110,6 +110,10 @@ export async function subscribeWithDoi(opts: {
   email: string;
   firstName?: string;
   source?: string;
+  /** Extra lists to join once they confirm (the skin-quiz result list). */
+  extraListIds?: number[];
+  /** The skin-quiz result, saved on the contact as SKIN_TYPE. */
+  skinType?: string;
 }): Promise<void> {
   if (devFallback()) {
     console.log("[brevo:dev] DOI subscribe →", opts);
@@ -118,22 +122,27 @@ export async function subscribeWithDoi(opts: {
 
   await liftUnsubscribeBlocks(opts.email);
 
-  const payload = {
+  const base = {
     email: opts.email,
-    includeListIds: [Number(requireEnv("BREVO_NEWSLETTER_LIST_ID"))],
+    includeListIds: [Number(requireEnv("BREVO_NEWSLETTER_LIST_ID")), ...(opts.extraListIds ?? [])],
     templateId: Number(requireEnv("BREVO_DOI_TEMPLATE_ID")),
     redirectionUrl: `${siteUrl()}/newsletter/confirmed`,
-    ...(opts.firstName ? { attributes: { FIRSTNAME: opts.firstName } } : {}),
   };
 
-  let res = await brevoPost("/contacts/doubleOptinConfirmation", payload);
+  // Attributes must already exist in the Brevo account (FIRSTNAME does by default; SKIN_TYPE is one you
+  // create). If Brevo refuses them, still subscribe the person with fewer attributes rather than failing.
+  const attempts: Record<string, string>[] = [];
+  if (opts.firstName && opts.skinType) attempts.push({ FIRSTNAME: opts.firstName, SKIN_TYPE: opts.skinType });
+  if (opts.skinType) attempts.push({ SKIN_TYPE: opts.skinType });
+  if (opts.firstName) attempts.push({ FIRSTNAME: opts.firstName });
+  attempts.push({});
 
-  // The FIRSTNAME attribute must already exist in the Brevo account. If it doesn't,
-  // still subscribe the person (without their first name) rather than failing.
-  if (res.status === 400 && payload.attributes) {
-    const { attributes: _drop, ...withoutAttributes } = payload;
-    void _drop;
-    res = await brevoPost("/contacts/doubleOptinConfirmation", withoutAttributes);
+  let res!: Response;
+  for (const attributes of attempts) {
+    res = await brevoPost("/contacts/doubleOptinConfirmation", Object.keys(attributes).length ? { ...base, attributes } : base);
+    if (res.status !== 400) break;
+    const text = await res.clone().text();
+    if (/duplicate|already/i.test(text)) break; // not an attribute problem
   }
 
   if (res.status === 201 || res.status === 204) return;
@@ -144,22 +153,63 @@ export async function subscribeWithDoi(opts: {
   throw new BrevoError(res.status, text.slice(0, 500));
 }
 
+/**
+ * A quiz taker who ticked the newsletter box.
+ *  - Skin quiz: they also join the list for their result, which starts that result's Brevo automation.
+ *    New contact: double opt-in as usual, and the lists are joined once they confirm.
+ *    Already confirmed on the newsletter (e.g. retaking the quiz): no second confirmation email;
+ *    they are moved straight to the list for the new result, so the new automation starts.
+ *  - Any other quiz: the plain newsletter signup.
+ */
+export async function subscribeQuizTaker(opts: {
+  email: string;
+  firstName?: string;
+  skin?: { type: string; listId: number; otherListIds: number[] };
+}): Promise<void> {
+  if (!opts.skin) return subscribeWithDoi({ email: opts.email, firstName: opts.firstName, source: "quiz" });
+
+  const { type, listId, otherListIds } = opts.skin;
+  if (devFallback()) {
+    console.log("[brevo:dev] quiz subscribe →", opts);
+    return;
+  }
+
+  const newsletterId = Number(requireEnv("BREVO_NEWSLETTER_LIST_ID"));
+  const found = await brevoRequest("GET", `/contacts/${encodeURIComponent(opts.email)}`);
+  if (found.ok) {
+    const c = (await found.json()) as { listIds?: number[]; emailBlacklisted?: boolean };
+    if (!c.emailBlacklisted && c.listIds?.includes(newsletterId)) {
+      let res = await brevoRequest("PUT", `/contacts/${encodeURIComponent(opts.email)}`, {
+        listIds: [listId],
+        unlinkListIds: otherListIds.filter((id) => id !== listId),
+        attributes: { SKIN_TYPE: type },
+      });
+      // SKIN_TYPE must exist in Brevo; if it doesn't, still move them to the right list
+      if (res.status === 400) {
+        res = await brevoRequest("PUT", `/contacts/${encodeURIComponent(opts.email)}`, {
+          listIds: [listId],
+          unlinkListIds: otherListIds.filter((id) => id !== listId),
+        });
+      }
+      if (!res.ok && res.status !== 204) throw new BrevoError(res.status, (await res.text()).slice(0, 500));
+      return;
+    }
+  } else if (found.status !== 404) {
+    throw new BrevoError(found.status, (await found.text()).slice(0, 300));
+  }
+
+  await subscribeWithDoi({ email: opts.email, firstName: opts.firstName, source: "quiz", extraListIds: [listId], skinType: type });
+}
+
 export type Mail = {
   to: { email: string; name?: string };
   subject: string;
   html: string;
   text: string;
   replyTo?: { email: string; name?: string };
-  /** Extra email headers, e.g. List-Unsubscribe. */
-  headers?: Record<string, string>;
 };
 
-/**
- * `respectBlocks`: for marketing-style emails (the skin-quiz series). Brevo's "blocked" list is then
- * honoured, so someone who bounced or marked us as spam is never emailed again. Account emails
- * (receipts, password resets) leave it off so an old unsubscribe can't cost anyone their account email.
- */
-export async function sendEmail(mail: Mail, opts: { respectBlocks?: boolean } = {}): Promise<void> {
+export async function sendEmail(mail: Mail): Promise<void> {
   if (devFallback()) {
     console.log(
       `[brevo:dev] EMAIL → ${mail.to.email}\n  subject: ${mail.subject}\n  replyTo: ${mail.replyTo?.email ?? "-"}\n  ${mail.text.replace(/\n/g, "\n  ")}`
@@ -167,7 +217,7 @@ export async function sendEmail(mail: Mail, opts: { respectBlocks?: boolean } = 
     return;
   }
 
-  if (!opts.respectBlocks) await liftTransactionalBlock(mail.to.email);
+  await liftTransactionalBlock(mail.to.email);
 
   const res = await brevoPost("/smtp/email", {
     sender: {
@@ -179,31 +229,9 @@ export async function sendEmail(mail: Mail, opts: { respectBlocks?: boolean } = 
     htmlContent: mail.html,
     textContent: mail.text,
     ...(mail.replyTo ? { replyTo: mail.replyTo } : {}),
-    ...(mail.headers ? { headers: mail.headers } : {}),
   });
 
   if (!res.ok) throw new BrevoError(res.status, (await res.text()).slice(0, 500));
-}
-
-/**
- * Has this person confirmed the newsletter (double opt-in) and not left it?
- *  - "ok": they are on the newsletter list
- *  - "pending": no confirmation yet (the confirmation email is still unanswered)
- *  - "blocked": they unsubscribed, or Brevo blocks their address
- * The skin-quiz emails only go to people who say "ok". In development with no Brevo key it is always "ok".
- */
-export async function newsletterConsent(email: string): Promise<"ok" | "pending" | "blocked"> {
-  if (devFallback()) return "ok";
-  const listId = Number(requireEnv("BREVO_NEWSLETTER_LIST_ID"));
-  const res = await fetch(`${API}/contacts/${encodeURIComponent(email)}`, {
-    headers: { "api-key": requireEnv("BREVO_API_KEY"), accept: "application/json" },
-    cache: "no-store",
-  });
-  if (res.status === 404) return "pending";
-  if (!res.ok) throw new BrevoError(res.status, (await res.text()).slice(0, 300));
-  const c = (await res.json()) as { listIds?: number[]; emailBlacklisted?: boolean; listUnsubscribed?: number[] };
-  if (c.emailBlacklisted || c.listUnsubscribed?.includes(listId)) return "blocked";
-  return c.listIds?.includes(listId) ? "ok" : "pending";
 }
 
 /** Where messages to the team (contact form, booking requests) are delivered. */

@@ -80,13 +80,7 @@ export function AboutYouForm({
       }),
     }).catch(() => {});
     // Only people who tick the box are contacted, after a confirmation email (double opt-in).
-    if (consent) {
-      fetch("/api/newsletter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, firstName, source: "quiz" }),
-      }).catch(() => {});
-    }
+    // /api/quiz above does the newsletter signup (and, for the skin quiz, joins the list for their result).
   }
 
   if (submitted) {

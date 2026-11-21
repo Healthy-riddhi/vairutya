@@ -4,8 +4,8 @@ import { bad, clean, clientIp, emailFailure, isEmail, rateLimited, readJson, too
 import { quizNotification } from "@/lib/email-templates";
 import { getQuizBySlug } from "@/lib/quiz/cms";
 import { scoreQuiz } from "@/lib/quiz/model";
-import { sequenceFor } from "@/lib/skin-drip";
-import { subscribeToDrip } from "@/lib/quiz-drip-api";
+import { sequenceFor, skinTarget } from "@/lib/skin-quiz";
+import { subscribeQuizTaker } from "@/lib/brevo";
 
 /**
  * A finished quiz → an email to the team with the person's details, result and every answer.
@@ -35,24 +35,23 @@ export async function POST(req: Request) {
   const chosen = (picked as number[]).map((a, i) => quiz.questions[i].answers[a]);
   const score = scoreQuiz(quiz.outcomes.length, chosen.map((c) => c.outcome));
 
-  // Skin quiz + newsletter box ticked: start their follow-up emails for this result. Best effort:
-  // it never blocks the quiz. The emails only go out once they have confirmed their email address.
-  if (body.newsletter === true && /skin/i.test(quiz.slug)) {
-    const sequence = sequenceFor(score.winners.map((i) => quiz.outcomes[i].name));
-    if (sequence) {
-      try {
-        await subscribeToDrip({
-          email: body.email,
-          firstName,
-          quizSlug: quiz.slug,
-          sequence,
-          language: body.locale === "fr" ? "fr" : "en",
-        });
-      } catch (err) {
-        console.error("[quiz] could not start the follow-up emails:", err);
+  // Newsletter box ticked: sign them up in Brevo (double opt-in, so only once they confirm).
+  // For the skin quiz they also join the Brevo list for their result, which starts that result's
+  // automation: the five follow-up emails. Best effort: it never blocks the quiz.
+  if (body.newsletter === true) {
+    try {
+      const sequence = /skin/i.test(quiz.slug) ? sequenceFor(score.winners.map((i) => quiz.outcomes[i].name)) : null;
+      const skin = sequence ? skinTarget(sequence) : null;
+      if (/skin/i.test(quiz.slug) && !skin) {
+        console.warn(
+          sequence
+            ? `[quiz] no Brevo list set for the skin result "${sequence}" (check BREVO_SKIN_LISTS); signing them up for the newsletter only`
+            : "[quiz] skin quiz result isn't Vata / Pitta / Kapha, so no follow-up emails: " + score.winners.map((i) => quiz.outcomes[i].name)
+        );
       }
-    } else {
-      console.warn("[quiz] skin quiz result has no matching email sequence:", score.winners.map((i) => quiz.outcomes[i].name));
+      await subscribeQuizTaker({ email: body.email, firstName, skin: skin ?? undefined });
+    } catch (err) {
+      console.error("[quiz] could not sign them up in Brevo:", err);
     }
   }
 

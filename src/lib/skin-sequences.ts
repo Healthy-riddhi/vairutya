@@ -2,11 +2,11 @@
  * The skin-quiz follow-up emails: five per skin type, in English.
  * Written by Riddhi. To change the wording, edit the text below; nothing else needs touching.
  *
- * - The greeting ("Dear Priya,") and sign-off are added around
- *   these blocks by skin-drip-emails.ts.
+ * - The greeting ("Dear {{ contact.FIRSTNAME }},") and sign-off are added around
+ *   these blocks by skin-quiz.ts.
  * - Text between **double asterisks** is shown in bold.
- * - Each email goes out on a fixed day after the quiz (day 3, 7, 10, 14, 21). Those days are set in
- *   Strapi (src/utils/quiz-drip.ts, DAYS), not here.
+ * - These are not sent by the website. Run  npx tsx scripts/export-skin-emails.ts  to turn them into HTML
+ *   files, then paste them into the Brevo automations (see skin-emails/INDEX.md that script writes).
  */
 
 export type SkinSequence =
@@ -486,7 +486,7 @@ export const SKIN_SEQUENCES: Record<SkinSequence, DripEmail[]> = {
           "ol": [
             "**Drench with Floral Water:** Mist clean, slightly damp skin generously with pure **steam-distilled rosewater** or **vetiver (khus) hydrosol** to flood thirsty Vata cells with cooling moisture.",
             "**Seal with Sweet Almond or Coconut-Jojoba:** Warm 3–4 drops of cold-pressed **sweet almond oil** (rich in soothing vitamin E) between your palms. In warmer months, blend with a drop of fractionated coconut oil.",
-            "**Slow, Press-and-Release Touch:** Gently press your palms onto your cheeks, forehead, and neck— holding for a breath at each spot to calm facial tension without creating friction.",
+            "**Slow, Press-and-Release Touch:** Gently press your palms onto your cheeks, forehead, and neck—holding for a breath at each spot to calm facial tension without creating friction.",
             "**Lukewarm Rinse:** Always cleanse with lukewarm or cool water to keep capillaries calm and intact."
           ]
         }
@@ -898,7 +898,7 @@ export const SKIN_SEQUENCES: Record<SkinSequence, DripEmail[]> = {
       "preview": "Honoring your natural rhythm—the true secret to effortless, lifelong radiance.",
       "blocks": [
         {
-          "p": "Over the past three weeks, we’ve explored how your Tridoshik skin thrives on adaptive, seasonal care— adjusting your food, oils, and movement as nature shifts around you."
+          "p": "Over the past three weeks, we’ve explored how your Tridoshik skin thrives on adaptive, seasonal care—adjusting your food, oils, and movement as nature shifts around you."
         },
         {
           "p": "The beauty of a balanced constitution is that when you stay attuned to your inner and outer environment, radiance becomes your natural state."
