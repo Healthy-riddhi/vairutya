@@ -35,12 +35,31 @@ export function skinLists(): Partial<Record<SkinSequence, number>> {
   return out;
 }
 
-/** The list for this result and the other skin lists, or null if the lists aren't set up (yet). */
-export function skinTarget(sequence: SkinSequence): { type: SkinSequence; listId: number; otherListIds: number[] } | null {
+/**
+ * What the Brevo emails need to know about a person, saved on their contact:
+ * SKIN_TYPE (which version of each email to show) and SKIN_SUBJECT_1 to _5 (the subject line of each email).
+ * The attributes are created by scripts/setup-brevo-skin.ts.
+ */
+export function skinAttributes(sequence: SkinSequence): Record<string, string> {
+  const attrs: Record<string, string> = { SKIN_TYPE: sequence };
+  for (const e of SKIN_SEQUENCES[sequence]) attrs[`SKIN_SUBJECT_${e.step}`] = e.subject;
+  return attrs;
+}
+export const SKIN_ATTRIBUTE_NAMES = ["SKIN_TYPE", "SKIN_SUBJECT_1", "SKIN_SUBJECT_2", "SKIN_SUBJECT_3", "SKIN_SUBJECT_4", "SKIN_SUBJECT_5"];
+
+/** The list for this result, the other skin lists and the contact attributes; null if the lists aren't set up (yet). */
+export function skinTarget(
+  sequence: SkinSequence
+): { type: SkinSequence; listId: number; otherListIds: number[]; attributes: Record<string, string> } | null {
   const lists = skinLists();
   const listId = lists[sequence];
   if (!listId) return null;
-  return { type: sequence, listId, otherListIds: Object.values(lists).filter((id): id is number => !!id && id !== listId) };
+  return {
+    type: sequence,
+    listId,
+    otherListIds: Object.values(lists).filter((id): id is number => !!id && id !== listId),
+    attributes: skinAttributes(sequence),
+  };
 }
 
 /* ------------- the emails, as HTML to paste into Brevo (see scripts/export-skin-emails.ts) ------------- */
@@ -57,20 +76,33 @@ function blockHtml(b: DripBlock): string {
 }
 
 /**
- * One email as a complete HTML page for Brevo, in the same look as the site's other emails. It uses
- * Brevo's own tags: {{ contact.FIRSTNAME }} for the name and {{ unsubscribe }} for the unsubscribe
- * link (Brevo requires one in every marketing email).
+ * Email number `step` (1 to 5) as ONE complete HTML page for Brevo, holding the version for every skin type.
+ * Brevo shows only the version that matches the person's SKIN_TYPE: its own tags {% if contact.SKIN_TYPE == … %}
+ * pick the heading, the preview line and the body. It also uses {{ contact.FIRSTNAME }} for the name and
+ * {{ unsubscribe }} for the unsubscribe link (Brevo requires one in every marketing email).
+ * The subject line is {{ contact.SKIN_SUBJECT_<step> }}, filled in from the contact (see skinAttributes).
  */
-export function brevoEmailHtml(e: DripEmail): string {
-  return layout(
-    e.subject,
+export function brevoStepHtml(step: number): string {
+  const pick = (render: (e: DripEmail) => string) =>
+    SEQUENCE_KEYS.map((key, i) => {
+      const e = SKIN_SEQUENCES[key].find((x) => x.step === step);
+      return e ? `{% ${i === 0 ? "if" : "elif"} contact.SKIN_TYPE == "${key}" %}${render(e)}` : "";
+    }).join("") + "{% endif %}";
+
+  // The shared layout escapes whatever it is given, so mark the three places and fill them in afterwards.
+  const html = layout(
+    "@@HEADING@@",
     p("Dear {{ contact.FIRSTNAME }},") +
-      e.blocks.map(blockHtml).join("") +
+      "@@BODY@@" +
       p("Warmly,<br>Riddhi<br>The Vairutya Studio") +
       button("https://www.vairutya.com", "Visit Vairutya") +
       `<p style="margin:28px 0 0;padding-top:18px;border-top:1px solid #e7e1dc;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:#6b6b63;">You are receiving this because you took the skin quiz on Vairutya and asked to hear from us. <a href="{{ unsubscribe }}" style="color:#6b6b63;">Unsubscribe</a></p>`,
-    e.preview
+    "@@PREVIEW@@"
   );
+  return html
+    .split("@@HEADING@@").join(pick((e) => esc(e.subject)))
+    .split("@@PREVIEW@@").join(pick((e) => esc(e.preview)))
+    .split("@@BODY@@").join(pick((e) => e.blocks.map(blockHtml).join("")));
 }
 
 /** Days after joining the list that each email goes out, and how long to wait before each one. */

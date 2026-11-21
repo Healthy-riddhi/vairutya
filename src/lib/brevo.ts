@@ -110,10 +110,11 @@ export async function subscribeWithDoi(opts: {
   email: string;
   firstName?: string;
   source?: string;
-  /** Extra lists to join once they confirm (the skin-quiz result list). */
-  extraListIds?: number[];
-  /** The skin-quiz result, saved on the contact as SKIN_TYPE. */
-  skinType?: string;
+  /**
+   * Skin quiz: the result's list to join once they confirm, and the attributes that go with it (SKIN_TYPE, …).
+   * They only join the list if Brevo accepts the attributes, because the automation's emails need them.
+   */
+  skin?: { listId: number; attributes: Record<string, string> };
 }): Promise<void> {
   if (devFallback()) {
     console.log("[brevo:dev] DOI subscribe →", opts);
@@ -124,25 +125,31 @@ export async function subscribeWithDoi(opts: {
 
   const base = {
     email: opts.email,
-    includeListIds: [Number(requireEnv("BREVO_NEWSLETTER_LIST_ID")), ...(opts.extraListIds ?? [])],
+    includeListIds: [Number(requireEnv("BREVO_NEWSLETTER_LIST_ID"))],
     templateId: Number(requireEnv("BREVO_DOI_TEMPLATE_ID")),
     redirectionUrl: `${siteUrl()}/newsletter/confirmed`,
   };
 
-  // Attributes must already exist in the Brevo account (FIRSTNAME does by default; SKIN_TYPE is one you
-  // create). If Brevo refuses them, still subscribe the person with fewer attributes rather than failing.
-  const attempts: Record<string, string>[] = [];
-  if (opts.firstName && opts.skinType) attempts.push({ FIRSTNAME: opts.firstName, SKIN_TYPE: opts.skinType });
-  if (opts.skinType) attempts.push({ SKIN_TYPE: opts.skinType });
-  if (opts.firstName) attempts.push({ FIRSTNAME: opts.firstName });
-  attempts.push({});
+  // Attributes must already exist in the Brevo account (FIRSTNAME does by default; the SKIN_* ones are created
+  // by scripts/setup-brevo-skin.ts). If Brevo refuses them, still sign the person up for the newsletter, but
+  // without the skin list, so the automation never sends them an email with missing content.
+  const attempts: { attributes: Record<string, string>; skin: boolean }[] = [];
+  if (opts.skin) attempts.push({ attributes: { ...(opts.firstName ? { FIRSTNAME: opts.firstName } : {}), ...opts.skin.attributes }, skin: true });
+  if (opts.firstName) attempts.push({ attributes: { FIRSTNAME: opts.firstName }, skin: false });
+  attempts.push({ attributes: {}, skin: false });
 
   let res!: Response;
-  for (const attributes of attempts) {
-    res = await brevoPost("/contacts/doubleOptinConfirmation", Object.keys(attributes).length ? { ...base, attributes } : base);
+  for (const [i, { attributes, skin }] of attempts.entries()) {
+    res = await brevoPost("/contacts/doubleOptinConfirmation", {
+      ...base,
+      includeListIds: [...base.includeListIds, ...(skin && opts.skin ? [opts.skin.listId] : [])],
+      ...(Object.keys(attributes).length ? { attributes } : {}),
+    });
     if (res.status !== 400) break;
     const text = await res.clone().text();
     if (/duplicate|already/i.test(text)) break; // not an attribute problem
+    if (skin) console.error("[brevo] the skin-quiz attributes were refused, so this person gets the newsletter only. Run scripts/setup-brevo-skin.ts. Brevo said:", text.slice(0, 200));
+    void i;
   }
 
   if (res.status === 201 || res.status === 204) return;
@@ -164,11 +171,11 @@ export async function subscribeWithDoi(opts: {
 export async function subscribeQuizTaker(opts: {
   email: string;
   firstName?: string;
-  skin?: { type: string; listId: number; otherListIds: number[] };
+  skin?: { type: string; listId: number; otherListIds: number[]; attributes: Record<string, string> };
 }): Promise<void> {
   if (!opts.skin) return subscribeWithDoi({ email: opts.email, firstName: opts.firstName, source: "quiz" });
 
-  const { type, listId, otherListIds } = opts.skin;
+  const { listId, otherListIds, attributes } = opts.skin;
   if (devFallback()) {
     console.log("[brevo:dev] quiz subscribe →", opts);
     return;
@@ -179,26 +186,25 @@ export async function subscribeQuizTaker(opts: {
   if (found.ok) {
     const c = (await found.json()) as { listIds?: number[]; emailBlacklisted?: boolean };
     if (!c.emailBlacklisted && c.listIds?.includes(newsletterId)) {
-      let res = await brevoRequest("PUT", `/contacts/${encodeURIComponent(opts.email)}`, {
+      // Update the attributes first: the emails read them, so they must be right before the automation starts.
+      const attrs = await brevoRequest("PUT", `/contacts/${encodeURIComponent(opts.email)}`, { attributes });
+      if (attrs.status === 400) {
+        console.error("[brevo] the skin-quiz attributes were refused, so they stay on the newsletter only. Run scripts/setup-brevo-skin.ts. Brevo said:", (await attrs.text()).slice(0, 200));
+        return;
+      }
+      if (!attrs.ok && attrs.status !== 204) throw new BrevoError(attrs.status, (await attrs.text()).slice(0, 500));
+      const moved = await brevoRequest("PUT", `/contacts/${encodeURIComponent(opts.email)}`, {
         listIds: [listId],
         unlinkListIds: otherListIds.filter((id) => id !== listId),
-        attributes: { SKIN_TYPE: type },
       });
-      // SKIN_TYPE must exist in Brevo; if it doesn't, still move them to the right list
-      if (res.status === 400) {
-        res = await brevoRequest("PUT", `/contacts/${encodeURIComponent(opts.email)}`, {
-          listIds: [listId],
-          unlinkListIds: otherListIds.filter((id) => id !== listId),
-        });
-      }
-      if (!res.ok && res.status !== 204) throw new BrevoError(res.status, (await res.text()).slice(0, 500));
+      if (!moved.ok && moved.status !== 204) throw new BrevoError(moved.status, (await moved.text()).slice(0, 500));
       return;
     }
   } else if (found.status !== 404) {
     throw new BrevoError(found.status, (await found.text()).slice(0, 300));
   }
 
-  await subscribeWithDoi({ email: opts.email, firstName: opts.firstName, source: "quiz", extraListIds: [listId], skinType: type });
+  await subscribeWithDoi({ email: opts.email, firstName: opts.firstName, source: "quiz", skin: { listId, attributes } });
 }
 
 export type Mail = {
